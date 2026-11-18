@@ -1,0 +1,1353 @@
+{% extends "layouts/dashboard_layout.html" %}
+
+{% block page_title %}Manajemen Simpanan & Transaksi Kasir{% endblock %}
+
+{% block content %}
+<!-- ================================================================
+     CUSTOM STYLES FOR SAVINGS MODULE
+================================================================ -->
+<style>
+  /* KPI Cards Grid */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 1.75rem;
+  }
+
+  .kpi-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 1.25rem 1.5rem;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    backdrop-filter: blur(12px);
+  }
+
+  .kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  }
+
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: var(--card-accent, var(--primary-color));
+  }
+
+  .kpi-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.75px;
+    color: var(--text-muted);
+    margin-bottom: 0.4rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .kpi-value {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -0.5px;
+    font-family: var(--font-heading, system-ui);
+  }
+
+  .kpi-sub {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-top: 0.35rem;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  /* Badge Styles */
+  .badge-setor {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    padding: 0.25rem 0.65rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  .badge-tarik {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    padding: 0.25rem 0.65rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  .badge-prod {
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+  }
+  .badge-pokok { background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); }
+  .badge-wajib { background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); }
+  .badge-sukarela { background: rgba(6, 182, 212, 0.15); color: #06b6d4; border: 1px solid rgba(6, 182, 212, 0.3); }
+
+  /* Navigation Tabs */
+  .tabs-nav {
+    display: flex;
+    gap: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 1.5rem;
+  }
+
+  .tab-btn {
+    background: transparent;
+    border: none;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s ease;
+  }
+
+  .tab-btn:hover {
+    color: var(--text-primary);
+  }
+
+  .tab-btn.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+  }
+
+  /* Table Card */
+  .card-table-wrap {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    overflow: hidden;
+    backdrop-filter: blur(12px);
+  }
+
+  .toolbar {
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .toolbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  /* Receipt Print Style */
+  @media print {
+    body * { visibility: hidden; }
+    #receipt-printable, #receipt-printable * { visibility: visible; }
+    #receipt-printable {
+      position: absolute;
+      left: 0; top: 0;
+      width: 100%;
+      margin: 0;
+      padding: 20px;
+      background: #fff !important;
+      color: #000 !important;
+      border: none !important;
+      box-shadow: none !important;
+    }
+    .no-print { display: none !important; }
+  }
+
+  .receipt-box {
+    background: #fff;
+    color: #1e293b;
+    border: 1px dashed #cbd5e1;
+    border-radius: 12px;
+    padding: 2rem;
+    font-family: 'Courier New', Courier, monospace;
+    position: relative;
+  }
+
+  .receipt-header {
+    text-align: center;
+    border-bottom: 2px dashed #94a3b8;
+    padding-bottom: 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .receipt-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.45rem;
+    font-size: 0.88rem;
+  }
+
+  .receipt-divider {
+    border-top: 1px dashed #cbd5e1;
+    margin: 0.85rem 0;
+  }
+</style>
+
+<!-- ================================================================
+     KPI / SALDO OVERVIEW
+================================================================ -->
+{% if my_summary and not is_staff %}
+<!-- PERSONAL MEMBER VIEW (ANGGOTA PORTAL) -->
+<div class="kpi-grid">
+  <div class="kpi-card" style="--card-accent: #6366f1;">
+    <div class="kpi-label">
+      <span>Simpanan Pokok</span>
+      <span class="badge badge-pokok">Terkunci</span>
+    </div>
+    <div class="kpi-value" id="kpi-my-pokok">Rp {{ "{:,.0f}".format(my_summary.pokok.balance).replace(',', '.') }}</div>
+    <div class="kpi-sub">
+      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+      <span>Pendaftaran Awal (Dicairkan jika keluar)</span>
+    </div>
+  </div>
+
+  <div class="kpi-card" style="--card-accent: #f59e0b;">
+    <div class="kpi-label">
+      <span>Simpanan Wajib</span>
+      <span class="badge badge-wajib">Terkunci</span>
+    </div>
+    <div class="kpi-value" id="kpi-my-wajib">Rp {{ "{:,.0f}".format(my_summary.wajib.balance).replace(',', '.') }}</div>
+    <div class="kpi-sub">
+      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+      <span>Iuran Bulanan Anggota</span>
+    </div>
+  </div>
+
+  <div class="kpi-card" style="--card-accent: #06b6d4;">
+    <div class="kpi-label">
+      <span>Simpanan Sukarela</span>
+      <span class="badge badge-sukarela">Bebas Tarik</span>
+    </div>
+    <div class="kpi-value" id="kpi-my-sukarela" style="color: #06b6d4;">Rp {{ "{:,.0f}".format(my_summary.sukarela.balance).replace(',', '.') }}</div>
+    <div class="kpi-sub">
+      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+      <span>Tersedia untuk ditarik sewaktu-waktu di kasir</span>
+    </div>
+  </div>
+
+  <div class="kpi-card" style="--card-accent: #10b981;">
+    <div class="kpi-label">
+      <span>Total Saldo Simpanan</span>
+      <span class="badge badge-setor">Total</span>
+    </div>
+    <div class="kpi-value" id="kpi-my-total" style="color: #10b981;">Rp {{ "{:,.0f}".format(my_summary.total_balance).replace(',', '.') }}</div>
+    <div class="kpi-sub">
+      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <span>Akumulasi saldo simpanan Anda di koperasi</span>
+    </div>
+  </div>
+</div>
+{% else %}
+<!-- KSP AGGREGATE VIEW (ADMIN / KASIR / MANAGER) -->
+<div class="kpi-grid">
+  <div class="kpi-card" style="--card-accent: #10b981;">
+    <div class="kpi-label">
+      <span>Total Simpanan Koperasi</span>
+      <span class="badge badge-setor">Ledger Aktif</span>
+    </div>
+    <div class="kpi-value" id="kpi-total-all">Rp {{ "{:,.0f}".format(stats.total_all).replace(',', '.') }}</div>
+    <div class="kpi-sub">Akumulasi seluruh produk simpanan anggota</div>
+  </div>
+
+  <div class="kpi-card" style="--card-accent: #6366f1;">
+    <div class="kpi-label">
+      <span>Simpanan Pokok</span>
+      <span class="badge badge-pokok">Terkunci</span>
+    </div>
+    <div class="kpi-value" id="kpi-total-pokok">Rp {{ "{:,.0f}".format(stats.total_pokok).replace(',', '.') }}</div>
+    <div class="kpi-sub">Modal ekuitas awal seluruh anggota</div>
+  </div>
+
+  <div class="kpi-card" style="--card-accent: #f59e0b;">
+    <div class="kpi-label">
+      <span>Simpanan Wajib</span>
+      <span class="badge badge-wajib">Terkunci</span>
+    </div>
+    <div class="kpi-value" id="kpi-total-wajib">Rp {{ "{:,.0f}".format(stats.total_wajib).replace(',', '.') }}</div>
+    <div class="kpi-sub">Akumulasi iuran wajib bulanan</div>
+  </div>
+
+  <div class="kpi-card" style="--card-accent: #06b6d4;">
+    <div class="kpi-label">
+      <span>Simpanan Sukarela</span>
+      <span class="badge badge-sukarela">Likuid</span>
+    </div>
+    <div class="kpi-value" id="kpi-total-sukarela" style="color: #06b6d4;">Rp {{ "{:,.0f}".format(stats.total_sukarela).replace(',', '.') }}</div>
+    <div class="kpi-sub">Dana tabungan fleksibel anggota</div>
+  </div>
+</div>
+{% endif %}
+
+<!-- ================================================================
+     NAVIGATION TABS & ACTION BUTTONS
+================================================================ -->
+<div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem;">
+  <div class="tabs-nav" style="margin-bottom: 0;">
+    <button class="tab-btn active" id="tab-btn-tx" onclick="Savings.switchTab('transactions')">
+      <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="vertical-align: -2px; margin-right: 4px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+      Buku Besar Transaksi (Ledger)
+    </button>
+    {% if is_staff %}
+    <button class="tab-btn" id="tab-btn-acc" onclick="Savings.switchTab('accounts')">
+      <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="vertical-align: -2px; margin-right: 4px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+      Rekening Simpanan Anggota
+    </button>
+    {% endif %}
+  </div>
+
+  {% if is_cashier %}
+  <div style="display: flex; gap: 0.75rem;">
+    <button class="btn btn-primary" onclick="Savings.openDepositModal()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-color: #10b981;">
+      <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+      Setor Simpanan
+    </button>
+    <button class="btn btn-secondary" onclick="Savings.openWithdrawModal()" style="color: #ef4444; border-color: rgba(239,68,68,0.4);">
+      <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>
+      Tarik Simpanan
+    </button>
+  </div>
+  {% endif %}
+</div>
+
+<!-- ================================================================
+     TAB 1: BUKU BESAR TRANSAKSI (LEDGER)
+================================================================ -->
+<div id="tab-transactions" class="card-table-wrap">
+  <!-- Toolbar: Search & Filters -->
+  <div class="toolbar">
+    <div class="search-wrap" style="position: relative; min-width: 280px;">
+      <input type="text" id="tx-search-input" class="form-control" placeholder="Cari No. TRX, No. Anggota, Nama..." style="padding-left: 2.25rem;">
+      <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--text-muted);"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+    </div>
+
+    <div class="toolbar-actions">
+      <!-- Filter Jenis Produk -->
+      <select id="tx-filter-product" class="form-control" style="width: auto;" onchange="Savings.loadTransactions(1)">
+        <option value="">Semua Jenis Produk</option>
+        <option value="SUKARELA">Simpanan Sukarela</option>
+        <option value="WAJIB">Simpanan Wajib</option>
+        <option value="POKOK">Simpanan Pokok</option>
+      </select>
+
+      <!-- Filter Tipe Transaksi -->
+      <select id="tx-filter-type" class="form-control" style="width: auto;" onchange="Savings.loadTransactions(1)">
+        <option value="">Semua Tipe Transaksi</option>
+        <option value="SETOR">SETOR (Kredit +)</option>
+        <option value="TARIK">TARIK (Debit -)</option>
+      </select>
+
+      <!-- Sorting -->
+      <select id="tx-filter-sort" class="form-control" style="width: auto;" onchange="Savings.loadTransactions(1)">
+        <option value="desc">Waktu: Terbaru</option>
+        <option value="asc">Waktu: Terlama</option>
+      </select>
+
+      <button class="btn btn-secondary btn-icon" onclick="Savings.loadTransactions(1)" title="Refresh Data">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Data Table Transaksi -->
+  <div style="overflow-x: auto;">
+    <table class="data-table" id="tx-table">
+      <thead>
+        <tr>
+          <th>No. Transaksi</th>
+          <th>Waktu</th>
+          <th>Anggota</th>
+          <th>Jenis Simpanan</th>
+          <th>Tipe</th>
+          <th style="text-align: right;">Nominal</th>
+          <th style="text-align: right;">Saldo Akhir</th>
+          <th>Kanal / Kasir</th>
+          <th style="text-align: center;">Aksi</th>
+        </tr>
+      </thead>
+      <tbody id="tx-tbody">
+        <!-- Injected via JavaScript -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination Bar -->
+  <div class="pagination-wrap" id="tx-pagination-bar" style="padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color);">
+    <!-- Injected via JavaScript -->
+  </div>
+</div>
+
+<!-- ================================================================
+     TAB 2: REKENING SIMPANAN ANGGOTA (STAFF ONLY)
+================================================================ -->
+{% if is_staff %}
+<div id="tab-accounts" class="card-table-wrap" style="display: none;">
+  <div class="toolbar">
+    <div class="search-wrap" style="position: relative; min-width: 280px;">
+      <input type="text" id="acc-search-input" class="form-control" placeholder="Cari No. Rekening, Anggota, NIK..." style="padding-left: 2.25rem;">
+      <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--text-muted);"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+    </div>
+
+    <div class="toolbar-actions">
+      <select id="acc-filter-product" class="form-control" style="width: auto;" onchange="Savings.loadAccounts(1)">
+        <option value="">Semua Jenis Produk</option>
+        <option value="SUKARELA">Simpanan Sukarela</option>
+        <option value="WAJIB">Simpanan Wajib</option>
+        <option value="POKOK">Simpanan Pokok</option>
+      </select>
+      <button class="btn btn-secondary btn-icon" onclick="Savings.loadAccounts(1)" title="Refresh Rekening">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div style="overflow-x: auto;">
+    <table class="data-table" id="acc-table">
+      <thead>
+        <tr>
+          <th>No. Rekening</th>
+          <th>Anggota</th>
+          <th>Jenis Produk</th>
+          <th style="text-align: right;">Saldo Buku</th>
+          <th style="text-align: right;">Saldo Rekonstruksi Ledger</th>
+          <th>Integritas Ledger</th>
+          <th>Status</th>
+          <th style="text-align: center;">Aksi</th>
+        </tr>
+      </thead>
+      <tbody id="acc-tbody">
+        <!-- Injected via JavaScript -->
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pagination-wrap" id="acc-pagination-bar" style="padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color);">
+    <!-- Injected via JavaScript -->
+  </div>
+</div>
+{% endif %}
+
+<!-- ================================================================
+     MODAL: SETOR SIMPANAN DI LOKET (KASIR)
+================================================================ -->
+<div class="modal-backdrop" id="modal-deposit" style="display: none;">
+  <div class="modal-dialog" style="max-width: 560px;">
+    <div class="modal-header">
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(16, 185, 129, 0.15); display: flex; align-items: center; justify-content: center; color: #10b981;">
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        </div>
+        <div>
+          <h4 style="margin: 0; font-size: 1.1rem; font-weight: 700;">Setor Simpanan di Loket</h4>
+          <p style="margin: 0; font-size: 0.78rem; color: var(--text-muted);">Penerimaan setoran kas loket teller koperasi</p>
+        </div>
+      </div>
+      <button class="btn-close" onclick="Savings.closeModal('deposit')">&times;</button>
+    </div>
+
+    <form id="form-deposit" onsubmit="Savings.submitDeposit(event)">
+      <div class="modal-body" style="padding: 1.5rem;">
+        <!-- Pilih Anggota -->
+        <div class="form-group" style="margin-bottom: 1.2rem;">
+          <label style="font-size: 0.82rem; font-weight: 700; margin-bottom: 0.4rem; display: block;">Anggota Koperasi <span style="color: #ef4444;">*</span></label>
+          <select id="dep-member-select" class="form-control" required onchange="Savings.onDepositMemberChanged()">
+            <option value="">-- Pilih Anggota --</option>
+            <!-- Injected via JS -->
+          </select>
+        </div>
+
+        <!-- Info Saldo Anggota Realtime -->
+        <div id="dep-member-info" style="display: none; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 10px; padding: 0.85rem; margin-bottom: 1.2rem; font-size: 0.82rem;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.35rem;">
+            <span style="color: var(--text-muted);">Nomor Anggota / NIK:</span>
+            <span id="dep-info-no" style="font-weight: 600; font-family: monospace;">-</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--text-muted);">Saldo Sukarela Saat Ini:</span>
+            <span id="dep-info-bal" style="font-weight: 700; color: #06b6d4;">Rp 0</span>
+          </div>
+        </div>
+
+        <!-- Jenis Simpanan -->
+        <div class="form-group" style="margin-bottom: 1.2rem;">
+          <label style="font-size: 0.82rem; font-weight: 700; margin-bottom: 0.4rem; display: block;">Jenis Simpanan <span style="color: #ef4444;">*</span></label>
+          <select id="dep-product-type" class="form-control" required>
+            <option value="SUKARELA" selected>Simpanan Sukarela (Harian & Fleksibel)</option>
+            <option value="WAJIB">Simpanan Wajib (Iuran Rutin Bulanan)</option>
+            <option value="POKOK">Simpanan Pokok (Pendaftaran Awal)</option>
+          </select>
+        </div>
+
+        <!-- Nominal -->
+        <div class="form-group" style="margin-bottom: 1.2rem;">
+          <label style="font-size: 0.82rem; font-weight: 700; margin-bottom: 0.4rem; display: block;">Nominal Setoran (Rp) <span style="color: #ef4444;">*</span></label>
+          <input type="number" id="dep-amount" class="form-control" min="1000" step="1000" placeholder="Contoh: 100000" required oninput="Savings.previewTerbilang('dep-amount', 'dep-terbilang')">
+          <div id="dep-terbilang" style="font-size: 0.78rem; color: #10b981; font-weight: 600; margin-top: 0.4rem; min-height: 1.2rem;"></div>
+        </div>
+
+        <!-- No Referensi Eksternal -->
+        <div class="form-group" style="margin-bottom: 1.2rem;">
+          <label style="font-size: 0.82rem; font-weight: 700; margin-bottom: 0.4rem; display: block;">No. Referensi / Slip Kuitansi (Opsional)</label>
+          <input type="text" id="dep-ref-no" class="form-control" placeholder="Contoh: SLIP-20260904-01">
+        </div>
+
+        <!-- Keterangan -->
+        <div class="form-group" style="margin-bottom: 0.5rem;">
+          <label style="font-size: 0.82rem; font-weight: 700; margin-bottom: 0.4rem; display: block;">Keterangan</label>
+          <input type="text" id="dep-desc" class="form-control" placeholder="Catatan transaksi setoran...">
+        </div>
+      </div>
+
+      <div class="modal-footer" style="padding: 1rem 1.5rem;">
+        <button type="button" class="btn btn-secondary" onclick="Savings.closeModal('deposit')">Batal</button>
+        <button type="submit" id="dep-submit-btn" class="btn btn-primary" style="background: #10b981; border-color: #10b981;">
+          Konfirmasi Setoran
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: TARIK SIMPANAN DI LOKET (KASIR - SESUAI KEBIJAKAN)
+================================================================ -->
+<div class="modal-backdrop" id="modal-withdraw" style="display: none;">
+  <div class="modal-dialog" style="max-width: 560px;">
+    <div class="modal-header">
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(239, 68, 68, 0.15); display: flex; align-items: center; justify-content: center; color: #ef4444;">
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>
+        </div>
+        <div>
+          <h4 style="margin: 0; font-size: 1.1rem; font-weight: 700;">Tarik Simpanan di Loket</h4>
+          <p style="margin: 0; font-size: 0.78rem; color: var(--text-muted);">Penarikan dana simpanan sesuai kebijakan koperasi</p>
+        </div>
+      </div>
+      <button class="btn-close" onclick="Savings.closeModal('withdraw')">&times;</button>
+    </div>
+
+    <form id="form-withdraw" onsubmit="Savings.submitWithdraw(event)">
+      <div class="modal-body" style="padding: 1.5rem;">
+        <!-- Pilih Anggota -->
+        <div class="form-group" style="margin-bottom: 1.2rem;">
+          <label style="font-size: 0.82rem; font-weight: 700; margin-bottom: 0.4rem; display: block;">Anggota Koperasi <span style="color: #ef4444;">*</span></label>
+          <select id="wd-member-select" class="form-control" required onchange="Savings.onWithdrawMemberChanged()">
+            <option value="">-- Pilih Anggota --</option>
+            <!-- Injected via JS -->
+          </select>
+        </div>
+
+        <!-- Jenis Simpanan -->
+        <div class="form-group" style="margin-bottom: 1.2rem;">
+          <label style="font-size: 0.82rem; font-weight: 700; margin-bottom: 0.4rem; display: block;">Jenis Simpanan <span style="color: #ef4444;">*</span></label>
+          <select id="wd-product-type" class="form-control" required onchange="Savings.onWithdrawProductChanged()">
+            <option value="SUKARELA" selected>Simpanan Sukarela (Dapat Ditarik)</option>
+            <option value="WAJIB">Simpanan Wajib (Terkunci)</option>
+            <option value="POKOK">Simpanan Pokok (Terkunci)</option>
+          </select>
+        </div>
+
+        <!-- Policy Alert Banner -->
+        <div id="wd-policy-warning" style="display: none; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 10px; padding: 0.85rem; margin-bottom: 1.2rem; color: #ef4444; font-size: 0.82rem; line-height: 1.5;">
+          <strong>⚠️ Kebijakan Penarikan:</strong> Simpanan Pokok & Wajib tidak dapat ditarik selama berstatus anggota aktif. Hanya dapat dicairkan apabila anggota resmi mengundurkan diri/keluar.
+        </div>
+
+        <!-- Info Saldo Tersedia -->
+        <div id="wd-balance-info" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 10px; padding: 0.85rem; margin-bottom: 1.2rem; font-size: 0.82rem;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.35rem;">
+            <span style="color: var(--text-muted);">Saldo Tersedia Saat Ini:</span>
+            <span id="wd-info-avail-bal" style="font-weight: 800; color: #06b6d4; font-size: 0.95rem;">Rp 0</span>
+          </div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">Pastikan permohonan penarikan tidak melebihi saldo tersedia.</div>
+        </div>
+
+        <!-- Nominal Penarikan -->
+        <div class="form-group" style="margin-bottom: 1.2rem;">
+          <label style="font-size: 0.82rem; font-weight: 700; margin-bottom: 0.4rem; display: block;">Nominal Penarikan (Rp) <span style="color: #ef4444;">*</span></label>
+          <input type="number" id="wd-amount" class="form-control" min="1000" step="1000" placeholder="Contoh: 50000" required oninput="Savings.previewTerbilang('wd-amount', 'wd-terbilang')">
+          <div id="wd-terbilang" style="font-size: 0.78rem; color: #ef4444; font-weight: 600; margin-top: 0.4rem; min-height: 1.2rem;"></div>
+        </div>
+
+        <!-- No Referensi -->
+        <div class="form-group" style="margin-bottom: 1.2rem;">
+          <label style="font-size: 0.82rem; font-weight: 700; margin-bottom: 0.4rem; display: block;">No. Referensi Penarikan (Opsional)</label>
+          <input type="text" id="wd-ref-no" class="form-control" placeholder="Contoh: WD-SLIP-01">
+        </div>
+
+        <!-- Keterangan -->
+        <div class="form-group" style="margin-bottom: 0.5rem;">
+          <label style="font-size: 0.82rem; font-weight: 700; margin-bottom: 0.4rem; display: block;">Keterangan Penarikan</label>
+          <input type="text" id="wd-desc" class="form-control" placeholder="Alasan penarikan dana...">
+        </div>
+      </div>
+
+      <div class="modal-footer" style="padding: 1rem 1.5rem;">
+        <button type="button" class="btn btn-secondary" onclick="Savings.closeModal('withdraw')">Batal</button>
+        <button type="submit" id="wd-submit-btn" class="btn btn-primary" style="background: #ef4444; border-color: #ef4444;">
+          Konfirmasi Penarikan
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: BUKTI TRANSAKSI (STRUK RESMI PRINTABLE)
+================================================================ -->
+<div class="modal-backdrop" id="modal-receipt" style="display: none;">
+  <div class="modal-dialog" style="max-width: 500px;">
+    <div class="modal-header no-print">
+      <h4 style="margin: 0; font-size: 1.1rem; font-weight: 700;">Bukti Transaksi Simpanan</h4>
+      <button class="btn-close" onclick="Savings.closeModal('receipt')">&times;</button>
+    </div>
+
+    <div class="modal-body" style="padding: 1.5rem;">
+      <div class="receipt-box" id="receipt-printable">
+        <div class="receipt-header">
+          <div style="font-size: 1.05rem; font-weight: 800; letter-spacing: 0.5px;">KSP AHNRFZI GRAHA</div>
+          <div style="font-size: 0.72rem; color: #64748b; margin-top: 2px;">Komp. Perumahan AHNRFZI Graha No. 12, Jakarta</div>
+          <div style="font-size: 0.72rem; color: #64748b;">Telp: (021) 8899-7766 • Badan Hukum No. 001/KSP/2026</div>
+          <div style="margin-top: 0.75rem; font-weight: 700; font-size: 0.95rem; text-decoration: underline;" id="rc-title">SLIP BUKTI SETORAN</div>
+          <div style="font-size: 0.75rem; color: #475569;" id="rc-tx-no">TRX-SAV-20260904-0001</div>
+        </div>
+
+        <div class="receipt-row">
+          <span>Waktu Transaksi:</span>
+          <span id="rc-date" style="font-weight: 600;">-</span>
+        </div>
+        <div class="receipt-row">
+          <span>Kasir / Teller:</span>
+          <span id="rc-cashier" style="font-weight: 600;">-</span>
+        </div>
+        <div class="receipt-row">
+          <span>No. Rekening:</span>
+          <span id="rc-acc-no" style="font-weight: 600;">-</span>
+        </div>
+
+        <div class="receipt-divider"></div>
+
+        <div class="receipt-row">
+          <span>Nama Anggota:</span>
+          <span id="rc-member-name" style="font-weight: 700;">-</span>
+        </div>
+        <div class="receipt-row">
+          <span>No. Anggota / NIK:</span>
+          <span id="rc-member-no">-</span>
+        </div>
+        <div class="receipt-row">
+          <span>Unit / Divisi:</span>
+          <span id="rc-member-unit">-</span>
+        </div>
+
+        <div class="receipt-divider"></div>
+
+        <div class="receipt-row">
+          <span>Jenis Produk:</span>
+          <span id="rc-product-name" style="font-weight: 700;">-</span>
+        </div>
+        <div class="receipt-row">
+          <span>Tipe Transaksi:</span>
+          <span id="rc-tx-type" style="font-weight: 700;">-</span>
+        </div>
+        <div class="receipt-row" style="font-size: 1.05rem; margin-top: 0.5rem;">
+          <span style="font-weight: 800;">JUMLAH NOMINAL:</span>
+          <span id="rc-amount" style="font-weight: 800;">Rp 0</span>
+        </div>
+        <div style="font-size: 0.75rem; font-style: italic; color: #475569; margin-bottom: 0.75rem;" id="rc-terbilang">"..."</div>
+
+        <div class="receipt-divider"></div>
+
+        <div class="receipt-row">
+          <span>Saldo Sebelumnya:</span>
+          <span id="rc-bal-before">-</span>
+        </div>
+        <div class="receipt-row" style="font-weight: 700;">
+          <span>Saldo Akhir:</span>
+          <span id="rc-bal-after">-</span>
+        </div>
+
+        <div class="receipt-divider"></div>
+        <div style="text-align: center; font-size: 0.72rem; color: #64748b; margin-top: 0.75rem;">
+          <div>Struk ini merupakan bukti transaksi yang sah dari Buku Besar KSP AHNRFZI.</div>
+          <div style="margin-top: 0.35rem;">Simpan struk ini sebagai bukti pembayaran/penarikan resmi.</div>
+          <div style="margin-top: 1rem; font-weight: 700;">[ VERIFIED TRANSACTION LEDGER ]</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer no-print" style="padding: 1rem 1.5rem; display: flex; justify-content: space-between;">
+      <button class="btn btn-secondary" onclick="Savings.closeModal('receipt')">Tutup</button>
+      <button class="btn btn-primary" onclick="window.print()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+        Cetak Struk
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: DETAIL TRANSAKSI
+================================================================ -->
+<div class="modal-backdrop" id="modal-detail" style="display: none;">
+  <div class="modal-dialog" style="max-width: 560px;">
+    <div class="modal-header">
+      <h4 style="margin: 0; font-size: 1.1rem; font-weight: 700;">Detail Entri Transaksi</h4>
+      <button class="btn-close" onclick="Savings.closeModal('detail')">&times;</button>
+    </div>
+    <div class="modal-body" style="padding: 1.5rem;" id="dt-content">
+      <!-- Injected via JS -->
+    </div>
+    <div class="modal-footer" style="padding: 1rem 1.5rem;">
+      <button class="btn btn-secondary" onclick="Savings.closeModal('detail')">Tutup</button>
+      <button class="btn btn-primary" id="dt-btn-receipt" onclick="">Lihat Struk</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     JAVASCRIPT MODULE
+================================================================ -->
+<script>
+(function() {
+  'use strict';
+
+  const IS_CASHIER = {{ 'true' if is_cashier else 'false' }};
+  const IS_STAFF   = {{ 'true' if is_staff else 'false' }};
+
+  // Application State
+  const state = {
+    activeTab: 'transactions',
+    txPage: 1,
+    txTotalPages: 1,
+    accPage: 1,
+    accTotalPages: 1,
+    membersList: [],
+    memberSummaries: {},
+    searchTimer: null
+  };
+
+  // Auth Helpers
+  function token() {
+    const c = document.cookie.split('; ').find(r => r.startsWith('access_token='));
+    if (!c) return null;
+    const t = c.split('=')[1];
+    return t.startsWith('Bearer%20') ? decodeURIComponent(t).split(' ')[1] : t;
+  }
+
+  function authHeaders() {
+    const t = token();
+    return t ? { 'Authorization': `Bearer ${t}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+  }
+
+  async function apiFetch(url, opts = {}) {
+    const resp = await fetch(url, { ...opts, headers: { ...authHeaders(), ...(opts.headers || {}) } });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) throw new Error(data.detail || data.message || `Error ${resp.status}`);
+    return data;
+  }
+
+  function fmtRupiah(num) {
+    if (num === null || num === undefined) return 'Rp 0';
+    return 'Rp ' + Number(num).toLocaleString('id-ID');
+  }
+
+  function fmtDateTime(dtStr) {
+    if (!dtStr) return '-';
+    return new Date(dtStr).toLocaleString('id-ID', {
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+  }
+
+  // Indonesian Terbilang generator in JS
+  function terbilangJS(n) {
+    n = Math.floor(Math.abs(Number(n) || 0));
+    const satuan = ["", "Satu", "Dua", "Tiga", "Empat", "Lima", "Enam", "Tujuh", "Delapan", "Sembilan", "Sepuluh", "Sebelas"];
+    if (n < 12) return satuan[n];
+    if (n < 20) return terbilangJS(n - 10) + " Belas";
+    if (n < 100) return terbilangJS(Math.floor(n / 10)) + " Puluh " + satuan[n % 10];
+    if (n < 200) return "Seratus " + terbilangJS(n - 100);
+    if (n < 1000) return terbilangJS(Math.floor(n / 100)) + " Ratus " + terbilangJS(n % 100);
+    if (n < 2000) return "Seribu " + terbilangJS(n - 1000);
+    if (n < 1000000) return terbilangJS(Math.floor(n / 1000)) + " Ribu " + terbilangJS(n % 1000);
+    if (n < 1000000000) return terbilangJS(Math.floor(n / 1000000)) + " Juta " + terbilangJS(n % 1000000);
+    return terbilangJS(Math.floor(n / 1000000000)) + " Miliar " + terbilangJS(n % 1000000000);
+  }
+
+  // -----------------------------------------------------------------------
+  // TAB SWITCHING
+  // -----------------------------------------------------------------------
+  function switchTab(tab) {
+    state.activeTab = tab;
+    document.getElementById('tab-btn-tx').classList.toggle('active', tab === 'transactions');
+    const accBtn = document.getElementById('tab-btn-acc');
+    if (accBtn) accBtn.classList.toggle('active', tab === 'accounts');
+
+    document.getElementById('tab-transactions').style.display = tab === 'transactions' ? 'block' : 'none';
+    const accTab = document.getElementById('tab-accounts');
+    if (accTab) accTab.style.display = tab === 'accounts' ? 'block' : 'none';
+
+    if (tab === 'transactions') loadTransactions(1);
+    else if (tab === 'accounts') loadAccounts(1);
+  }
+
+  // -----------------------------------------------------------------------
+  // LOAD TRANSACTIONS (LEDGER)
+  // -----------------------------------------------------------------------
+  async function loadTransactions(page = 1) {
+    state.txPage = page;
+    const tbody = document.getElementById('tx-tbody');
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 2rem; color: var(--text-muted);"><span class="spinner"></span> Memuat buku besar transaksi...</td></tr>';
+
+    const search = document.getElementById('tx-search-input').value.trim();
+    const prod   = document.getElementById('tx-filter-product').value;
+    const type   = document.getElementById('tx-filter-type').value;
+    const sort   = document.getElementById('tx-filter-sort').value;
+
+    const params = new URLSearchParams({
+      page: page,
+      per_page: 12,
+      sort_order: sort || 'desc'
+    });
+    if (search) params.set('search', search);
+    if (prod) params.set('product_type', prod);
+    if (type) params.set('transaction_type', type);
+
+    try {
+      const data = await apiFetch(`/api/v1/savings/transactions?${params}`);
+      state.txTotalPages = data.total_pages;
+      renderTransactionsTable(data.items || []);
+      renderTxPagination(data);
+    } catch(err) {
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 2rem; color: #ef4444;">❌ Gagal memuat transaksi: ${err.message}</td></tr>`;
+    }
+  }
+
+  function renderTransactionsTable(items) {
+    const tbody = document.getElementById('tx-tbody');
+    if (items.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 3rem 1rem;">
+        <div style="font-size: 2rem; margin-bottom: 0.5rem;">📂</div>
+        <div style="font-weight: 700; color: var(--text-primary); font-size: 1rem;">Tidak ada transaksi simpanan ditemukan</div>
+        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Belum ada mutasi buku besar yang sesuai kriteria pencarian.</div>
+      </td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = items.map(t => {
+      const isSetor = t.transaction_type === 'SETOR' || t.transaction_type === 'DEPOSIT';
+      const badgeCls = isSetor ? 'badge-setor' : 'badge-tarik';
+      const typeLabel = isSetor ? 'SETOR' : 'TARIK';
+
+      const pType = t.product_type || 'SUKARELA';
+      const prodBadgeCls = pType === 'POKOK' ? 'badge-pokok' : (pType === 'WAJIB' ? 'badge-wajib' : 'badge-sukarela');
+
+      return `<tr>
+        <td style="font-family: monospace; font-size: 0.82rem; font-weight: 700;">
+          <a href="javascript:void(0)" onclick="Savings.viewDetail(${t.id})" style="color: var(--primary-color); text-decoration: none;">${t.transaction_no}</a>
+        </td>
+        <td style="font-size: 0.8rem; color: var(--text-muted);">${fmtDateTime(t.created_at)}</td>
+        <td>
+          <div style="font-weight: 600; font-size: 0.85rem;">${t.member_name || '-'}</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace;">${t.member_no || '-'}</div>
+        </td>
+        <td><span class="badge ${prodBadgeCls}">${t.product_name || pType}</span></td>
+        <td><span class="${badgeCls}">${isSetor ? '↓' : '↑'} ${typeLabel}</span></td>
+        <td style="text-align: right; font-weight: 700; font-size: 0.9rem; color: ${isSetor ? '#10b981' : '#ef4444'};">
+          ${isSetor ? '+' : '-'} ${fmtRupiah(t.amount)}
+        </td>
+        <td style="text-align: right; font-weight: 600; font-size: 0.85rem;">
+          ${fmtRupiah(t.balance_after)}
+        </td>
+        <td style="font-size: 0.8rem;">
+          <div>${t.payment_channel}</div>
+          <div style="font-size: 0.72rem; color: var(--text-muted);">${t.created_by_name || 'System'}</div>
+        </td>
+        <td style="text-align: center;">
+          <div style="display: flex; gap: 0.35rem; justify-content: center;">
+            <button class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="Savings.viewDetail(${t.id})" title="Detail">
+              <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+            </button>
+            <button class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; color: var(--primary-color);" onclick="Savings.printReceipt(${t.id})" title="Cetak Struk">
+              <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+            </button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  function renderTxPagination(data) {
+    const bar = document.getElementById('tx-pagination-bar');
+    if (data.total_pages <= 1) {
+      bar.innerHTML = `<span style="font-size: 0.8rem; color: var(--text-muted);">Menampilkan ${data.total} transaksi</span>`;
+      return;
+    }
+    const from = (data.page - 1) * data.per_page + 1;
+    const to = Math.min(data.page * data.per_page, data.total);
+
+    bar.innerHTML = `
+      <span style="font-size: 0.8rem; color: var(--text-muted);">${from}-${to} dari ${data.total} transaksi</span>
+      <div style="display: flex; gap: 0.4rem;">
+        <button class="btn btn-secondary" style="padding: 0.3rem 0.65rem;" onclick="Savings.loadTransactions(1)" ${!data.has_prev ? 'disabled' : ''}>«</button>
+        <button class="btn btn-secondary" style="padding: 0.3rem 0.65rem;" onclick="Savings.loadTransactions(${data.page - 1})" ${!data.has_prev ? 'disabled' : ''}>‹</button>
+        <span style="padding: 0.3rem 0.75rem; font-size: 0.82rem; font-weight: 700;">${data.page} / ${data.total_pages}</span>
+        <button class="btn btn-secondary" style="padding: 0.3rem 0.65rem;" onclick="Savings.loadTransactions(${data.page + 1})" ${!data.has_next ? 'disabled' : ''}>›</button>
+        <button class="btn btn-secondary" style="padding: 0.3rem 0.65rem;" onclick="Savings.loadTransactions(${data.total_pages})" ${!data.has_next ? 'disabled' : ''}>»</button>
+      </div>`;
+  }
+
+  // -----------------------------------------------------------------------
+  // LOAD ACCOUNTS (STAFF ONLY)
+  // -----------------------------------------------------------------------
+  async function loadAccounts(page = 1) {
+    state.accPage = page;
+    const tbody = document.getElementById('acc-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-muted);"><span class="spinner"></span> Memuat rekening & verifikasi saldo ledger...</td></tr>';
+
+    const search = document.getElementById('acc-search-input')?.value.trim() || '';
+    const prod   = document.getElementById('acc-filter-product')?.value || '';
+
+    const params = new URLSearchParams({ page: page, per_page: 15 });
+    if (search) params.set('search', search);
+    if (prod) params.set('product_type', prod);
+
+    try {
+      const data = await apiFetch(`/api/v1/savings/accounts?${params}`);
+      state.accTotalPages = data.total_pages;
+      renderAccountsTable(data.items || []);
+      renderAccPagination(data);
+    } catch(err) {
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem; color: #ef4444;">❌ Gagal memuat rekening: ${err.message}</td></tr>`;
+    }
+  }
+
+  function renderAccountsTable(items) {
+    const tbody = document.getElementById('acc-tbody');
+    if (!tbody) return;
+    if (items.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">Tidak ada rekening ditemukan.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = items.map(a => {
+      const pType = a.product_type || 'SUKARELA';
+      const prodBadgeCls = pType === 'POKOK' ? 'badge-pokok' : (pType === 'WAJIB' ? 'badge-wajib' : 'badge-sukarela');
+      const isConsistent = a.is_balance_valid;
+
+      return `<tr>
+        <td style="font-family: monospace; font-size: 0.85rem; font-weight: 700;">${a.account_no}</td>
+        <td>
+          <div style="font-weight: 600; font-size: 0.85rem;">${a.member_name || '-'}</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace;">${a.member_no || '-'}</div>
+        </td>
+        <td><span class="badge ${prodBadgeCls}">${a.product_name || pType}</span></td>
+        <td style="text-align: right; font-weight: 700;">${fmtRupiah(a.balance)}</td>
+        <td style="text-align: right; font-weight: 700; color: #06b6d4;">${fmtRupiah(a.reconstructed_balance)}</td>
+        <td>
+          ${isConsistent ?
+            `<span style="color: #10b981; font-weight: 700; font-size: 0.78rem; display: flex; align-items: center; gap: 4px;">✓ Sinkron (100%)</span>` :
+            `<span style="color: #ef4444; font-weight: 700; font-size: 0.78rem; display: flex; align-items: center; gap: 4px;">⚠️ Selisih Terdeteksi</span>`
+          }
+        </td>
+        <td><span class="badge badge-aktif">${a.status}</span></td>
+        <td style="text-align: center;">
+          <button class="btn btn-secondary" style="padding: 0.25rem 0.55rem; font-size: 0.75rem;" onclick="Savings.filterByAccount('${a.account_no}')" title="Lihat Mutasi">
+            Mutasi
+          </button>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  function renderAccPagination(data) {
+    const bar = document.getElementById('acc-pagination-bar');
+    if (!bar) return;
+    if (data.total_pages <= 1) {
+      bar.innerHTML = `<span style="font-size: 0.8rem; color: var(--text-muted);">Menampilkan ${data.total} rekening</span>`;
+      return;
+    }
+    const from = (data.page - 1) * data.per_page + 1;
+    const to = Math.min(data.page * data.per_page, data.total);
+    bar.innerHTML = `
+      <span style="font-size: 0.8rem; color: var(--text-muted);">${from}-${to} dari ${data.total} rekening</span>
+      <div style="display: flex; gap: 0.4rem;">
+        <button class="btn btn-secondary" style="padding: 0.3rem 0.65rem;" onclick="Savings.loadAccounts(${data.page - 1})" ${!data.has_prev ? 'disabled' : ''}>‹</button>
+        <span style="padding: 0.3rem 0.75rem; font-size: 0.82rem; font-weight: 700;">${data.page} / ${data.total_pages}</span>
+        <button class="btn btn-secondary" style="padding: 0.3rem 0.65rem;" onclick="Savings.loadAccounts(${data.page + 1})" ${!data.has_next ? 'disabled' : ''}>›</button>
+      </div>`;
+  }
+
+  // -----------------------------------------------------------------------
+  // LOAD MEMBERS FOR CASHIER SELECT
+  // -----------------------------------------------------------------------
+  async function loadMembersList() {
+    if (!IS_CASHIER) return;
+    try {
+      const data = await apiFetch('/api/v1/members/?page=1&per_page=100');
+      state.membersList = data.items || [];
+      populateMemberSelects();
+    } catch(err) {
+      console.warn('Gagal memuat list anggota untuk kasir:', err);
+    }
+  }
+
+  function populateMemberSelects() {
+    const depSelect = document.getElementById('dep-member-select');
+    const wdSelect  = document.getElementById('wd-member-select');
+    if (!depSelect && !wdSelect) return;
+
+    const options = state.membersList.map(m => {
+      return `<option value="${m.id}" data-no="${m.member_no}" data-name="${m.full_name}" data-nik="${m.nik}">
+        ${m.member_no} - ${m.full_name} (${m.status})
+      </option>`;
+    }).join('');
+
+    if (depSelect) depSelect.innerHTML = '<option value="">-- Pilih Anggota --</option>' + options;
+    if (wdSelect)  wdSelect.innerHTML  = '<option value="">-- Pilih Anggota --</option>' + options;
+  }
+
+  // -----------------------------------------------------------------------
+  // MODAL HANDLERS
+  // -----------------------------------------------------------------------
+  function closeModal(name) {
+    const modal = document.getElementById(`modal-${name}`);
+    if (modal) modal.style.display = 'none';
+  }
+
+  function openDepositModal() {
+    document.getElementById('form-deposit').reset();
+    document.getElementById('dep-terbilang').innerText = '';
+    document.getElementById('dep-member-info').style.display = 'none';
+    document.getElementById('modal-deposit').style.display = 'flex';
+  }
+
+  function openWithdrawModal() {
+    document.getElementById('form-withdraw').reset();
+    document.getElementById('wd-terbilang').innerText = '';
+    document.getElementById('wd-policy-warning').style.display = 'none';
+    document.getElementById('wd-info-avail-bal').innerText = 'Rp 0';
+    document.getElementById('modal-withdraw').style.display = 'flex';
+  }
+
+  async function onDepositMemberChanged() {
+    const sel = document.getElementById('dep-member-select');
+    const memberId = sel.value;
+    const infoBox = document.getElementById('dep-member-info');
+    if (!memberId) {
+      infoBox.style.display = 'none';
+      return;
+    }
+    const opt = sel.options[sel.selectedIndex];
+    document.getElementById('dep-info-no').innerText = `${opt.dataset.no} • ${opt.dataset.nik}`;
+    infoBox.style.display = 'block';
+
+    try {
+      const summary = await apiFetch(`/api/v1/savings/members/${memberId}/summary`);
+      state.memberSummaries[memberId] = summary;
+      document.getElementById('dep-info-bal').innerText = fmtRupiah(summary.sukarela.balance);
+    } catch(err) {
+      console.warn(err);
+    }
+  }
+
+  async function onWithdrawMemberChanged() {
+    const sel = document.getElementById('wd-member-select');
+    const memberId = sel.value;
+    if (!memberId) return;
+
+    try {
+      const summary = await apiFetch(`/api/v1/savings/members/${memberId}/summary`);
+      state.memberSummaries[memberId] = summary;
+      updateWithdrawBalanceInfo();
+    } catch(err) {
+      console.warn(err);
+    }
+  }
+
+  function onWithdrawProductChanged() {
+    updateWithdrawBalanceInfo();
+  }
+
+  function updateWithdrawBalanceInfo() {
+    const memberId = document.getElementById('wd-member-select').value;
+    const prodType = document.getElementById('wd-product-type').value;
+    const warning  = document.getElementById('wd-policy-warning');
+    const availBal = document.getElementById('wd-info-avail-bal');
+
+    // Policy warning for POKOK & WAJIB
+    if (prodType === 'POKOK' || prodType === 'WAJIB') {
+      warning.style.display = 'block';
+    } else {
+      warning.style.display = 'none';
+    }
+
+    if (!memberId || !state.memberSummaries[memberId]) {
+      availBal.innerText = 'Rp 0';
+      return;
+    }
+
+    const s = state.memberSummaries[memberId];
+    if (prodType === 'SUKARELA') {
+      availBal.innerText = fmtRupiah(s.sukarela.balance);
+    } else if (prodType === 'WAJIB') {
+      availBal.innerText = `${fmtRupiah(s.wajib.balance)} (Terkunci)`;
+    } else if (prodType === 'POKOK') {
+      availBal.innerText = `${fmtRupiah(s.pokok.balance)} (Terkunci)`;
+    }
+  }
+
+  function previewTerbilang(inputId, targetId) {
+    const val = document.getElementById(inputId).value;
+    const target = document.getElementById(targetId);
+    if (!val || Number(val) <= 0) {
+      target.innerText = '';
+      return;
+    }
+    target.innerText = `"${terbilangJS(val)} Rupiah"`;
+  }
+
+  // -----------------------------------------------------------------------
+  // SUBMIT DEPOSIT
+  // -----------------------------------------------------------------------
+  async function submitDeposit(e) {
+    e.preventDefault();
+    const btn = document.getElementById('dep-submit-btn');
+    btn.disabled = true;
+    btn.innerText = 'Memproses...';
+
+    const payload = {
+      member_id: parseInt(document.getElementById('dep-member-select').value),
+      product_type: document.getElementById('dep-product-type').value,
+      amount: parseFloat(document.getElementById('dep-amount').value),
+      reference_no: document.getElementById('dep-ref-no').value.trim() || null,
+      description: document.getElementById('dep-desc').value.trim() || null,
+      payment_channel: 'CASHIER'
+    };
+
+    try {
+      const tx = await apiFetch('/api/v1/savings/transactions/deposit', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      closeModal('deposit');
+      if (window.App?.showToast) App.showToast(`Setoran ${tx.transaction_no} berhasil dibukukan!`, 'success');
+      loadTransactions(1);
+      // Auto-open receipt
+      printReceipt(tx.id);
+    } catch(err) {
+      alert(`Gagal memproses setoran: ${err.message}`);
+    } finally {
+      btn.disabled = false;
+      btn.innerText = 'Konfirmasi Setoran';
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // SUBMIT WITHDRAWAL
+  // -----------------------------------------------------------------------
+  async function submitWithdraw(e) {
+    e.preventDefault();
+    const btn = document.getElementById('wd-submit-btn');
+    btn.disabled = true;
+    btn.innerText = 'Memproses...';
+
+    const payload = {
+      member_id: parseInt(document.getElementById('wd-member-select').value),
+      product_type: document.getElementById('wd-product-type').value,
+      amount: parseFloat(document.getElementById('wd-amount').value),
+      reference_no: document.getElementById('wd-ref-no').value.trim() || null,
+      description: document.getElementById('wd-desc').value.trim() || null,
+      payment_channel: 'CASHIER'
+    };
+
+    try {
+      const tx = await apiFetch('/api/v1/savings/transactions/withdraw', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      closeModal('withdraw');
+      if (window.App?.showToast) App.showToast(`Penarikan ${tx.transaction_no} berhasil dibukukan!`, 'success');
+      loadTransactions(1);
+      // Auto-open receipt
+      printReceipt(tx.id);
+    } catch(err) {
+      alert(`Gagal memproses penarikan: ${err.message}`);
+    } finally {
+      btn.disabled = false;
+      btn.innerText = 'Konfirmasi Penarikan';
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // RECEIPT & DETAIL MODAL
+  // -----------------------------------------------------------------------
+  async function printReceipt(txId) {
+    try {
+      const r = await apiFetch(`/api/v1/savings/transactions/${txId}/receipt`);
+      const isSetor = r.transaction_type === 'SETOR' || r.transaction_type === 'DEPOSIT';
+
+      document.getElementById('rc-title').innerText = isSetor ? 'SLIP BUKTI SETORAN SIMPANAN' : 'SLIP BUKTI PENARIKAN SIMPANAN';
+      document.getElementById('rc-tx-no').innerText = r.transaction_no;
+      document.getElementById('rc-date').innerText = fmtDateTime(r.date);
+      document.getElementById('rc-cashier').innerText = r.cashier_name;
+      document.getElementById('rc-acc-no').innerText = r.account_no;
+
+      document.getElementById('rc-member-name').innerText = r.member_name;
+      document.getElementById('rc-member-no').innerText = `${r.member_no} / ${r.nik}`;
+      document.getElementById('rc-member-unit').innerText = `${r.unit_divisi || '-'} (${r.jabatan || '-'})`;
+
+      document.getElementById('rc-product-name').innerText = r.product_name;
+      document.getElementById('rc-tx-type').innerText = isSetor ? 'SETORAN KAS' : 'PENARIKAN KAS';
+      document.getElementById('rc-amount').innerText = fmtRupiah(r.amount);
+      document.getElementById('rc-terbilang').innerText = `"${r.amount_terbilang}"`;
+
+      document.getElementById('rc-bal-before').innerText = fmtRupiah(r.balance_before);
+      document.getElementById('rc-bal-after').innerText = fmtRupiah(r.balance_after);
+
+      document.getElementById('modal-receipt').style.display = 'flex';
+    } catch(err) {
+      alert(`Gagal memuat struk transaksi: ${err.message}`);
+    }
+  }
+
+  async function viewDetail(txId) {
+    try {
+      const t = await apiFetch(`/api/v1/savings/transactions/${txId}`);
+      const isSetor = t.transaction_type === 'SETOR' || t.transaction_type === 'DEPOSIT';
+
+      const content = `
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.25rem; margin-bottom: 1.25rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+            <span style="font-family: monospace; font-size: 1rem; font-weight: 800; color: var(--primary-color);">${t.transaction_no}</span>
+            <span class="${isSetor ? 'badge-setor' : 'badge-tarik'}">${isSetor ? 'SETOR' : 'TARIK'}</span>
+          </div>
+          <div style="font-size: 1.4rem; font-weight: 800; color: ${isSetor ? '#10b981' : '#ef4444'}; margin-bottom: 0.5rem;">
+            ${isSetor ? '+' : '-'} ${fmtRupiah(t.amount)}
+          </div>
+          <div style="font-size: 0.78rem; color: var(--text-muted);">Status Buku Besar: <strong style="color: #10b981;">COMPLETED (Final Ledger)</strong></div>
+        </div>
+
+        <table style="width: 100%; font-size: 0.85rem; border-collapse: collapse;">
+          <tr style="border-bottom: 1px solid var(--border-color);">
+            <td style="padding: 0.5rem 0; color: var(--text-muted);">Anggota:</td>
+            <td style="padding: 0.5rem 0; font-weight: 600; text-align: right;">${t.member_name} (${t.member_no})</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border-color);">
+            <td style="padding: 0.5rem 0; color: var(--text-muted);">Jenis Simpanan:</td>
+            <td style="padding: 0.5rem 0; font-weight: 600; text-align: right;">${t.product_name}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border-color);">
+            <td style="padding: 0.5rem 0; color: var(--text-muted);">Waktu Transaksi:</td>
+            <td style="padding: 0.5rem 0; font-weight: 600; text-align: right;">${fmtDateTime(t.created_at)}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border-color);">
+            <td style="padding: 0.5rem 0; color: var(--text-muted);">Saldo Sebelum:</td>
+            <td style="padding: 0.5rem 0; font-weight: 600; text-align: right;">${fmtRupiah(t.balance_before)}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border-color);">
+            <td style="padding: 0.5rem 0; color: var(--text-muted);">Saldo Sesudah:</td>
+            <td style="padding: 0.5rem 0; font-weight: 700; text-align: right; color: var(--primary-color);">${fmtRupiah(t.balance_after)}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border-color);">
+            <td style="padding: 0.5rem 0; color: var(--text-muted);">Petugas Kasir:</td>
+            <td style="padding: 0.5rem 0; font-weight: 600; text-align: right;">${t.created_by_name || '-'}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border-color);">
+            <td style="padding: 0.5rem 0; color: var(--text-muted);">Kanal Pembayaran:</td>
+            <td style="padding: 0.5rem 0; font-weight: 600; text-align: right;">${t.payment_channel}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border-color);">
+            <td style="padding: 0.5rem 0; color: var(--text-muted);">No. Referensi:</td>
+            <td style="padding: 0.5rem 0; font-family: monospace; text-align: right;">${t.reference_no || '-'}</td>
+          </tr>
+          <tr>
+            <td style="padding: 0.5rem 0; color: var(--text-muted);">Keterangan:</td>
+            <td style="padding: 0.5rem 0; text-align: right;">${t.description || '-'}</td>
+          </tr>
+        </table>
+      `;
+
+      document.getElementById('dt-content').innerHTML = content;
+      document.getElementById('dt-btn-receipt').onclick = () => { closeModal('detail'); printReceipt(txId); };
+      document.getElementById('modal-detail').style.display = 'flex';
+    } catch(err) {
+      alert(`Gagal memuat detail transaksi: ${err.message}`);
+    }
+  }
+
+  function filterByAccount(accNo) {
+    switchTab('transactions');
+    document.getElementById('tx-search-input').value = accNo;
+    loadTransactions(1);
+  }
+
+  // -----------------------------------------------------------------------
+  // SEARCH DEBOUNCE
+  // -----------------------------------------------------------------------
+  document.getElementById('tx-search-input').addEventListener('input', () => {
+    clearTimeout(state.searchTimer);
+    state.searchTimer = setTimeout(() => loadTransactions(1), 400);
+  });
+
+  const accSearch = document.getElementById('acc-search-input');
+  if (accSearch) {
+    accSearch.addEventListener('input', () => {
+      clearTimeout(state.searchTimer);
+      state.searchTimer = setTimeout(() => loadAccounts(1), 400);
+    });
+  }
+
+  // Expose to window
+  window.Savings = {
+    switchTab,
+    loadTransactions,
+    loadAccounts,
+    openDepositModal,
+    openWithdrawModal,
+    closeModal,
+    onDepositMemberChanged,
+    onWithdrawMemberChanged,
+    onWithdrawProductChanged,
+    previewTerbilang,
+    submitDeposit,
+    submitWithdraw,
+    printReceipt,
+    viewDetail,
+    filterByAccount
+  };
+
+  // Initialize
+  document.addEventListener('DOMContentLoaded', () => {
+    loadTransactions(1);
+    if (IS_CASHIER) loadMembersList();
+  });
+})();
+</script>
+{% endblock %}

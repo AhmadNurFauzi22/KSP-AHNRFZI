@@ -1,0 +1,19 @@
+{% extends "layouts/dashboard_layout.html" %}
+{% block title %}Audit Trail - KSP AHNRFZI{% endblock %}
+{% block page_title %}Audit Trail & Aktivitas Sistem{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header"><div class="card-title">🛡️ 100 Aktivitas Terakhir</div><a href="/" class="btn btn-secondary">← Dashboard</a></div>
+  <div class="table-container" style="max-height:640px;"><table class="table">
+    <thead><tr><th>Waktu</th><th>User</th><th>Aksi</th><th>Entitas</th><th>ID</th><th>Catatan</th><th>IP</th></tr></thead>
+    <tbody>{% for l in logs %}<tr>
+      <td style="font-size:.78rem;">{{ l.created_at.strftime('%d/%m/%Y %H:%M') if l.created_at else '-' }}</td>
+      <td>{{ l.user.full_name if l.user else '-' }}</td>
+      <td><span class="badge badge-primary">{{ l.action }}</span></td>
+      <td>{{ l.entity_name }}</td><td>{{ l.entity_id or '-' }}</td>
+      <td style="font-size:.82rem;max-width:320px;">{{ l.notes or '-' }}</td>
+      <td style="font-size:.78rem;">{{ l.ip_address or '-' }}</td></tr>
+    {% else %}<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted);">Belum ada log audit.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+{% endblock %}

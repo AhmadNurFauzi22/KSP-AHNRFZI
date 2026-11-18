@@ -1,0 +1,1480 @@
+{% extends "layouts/dashboard_layout.html" %}
+
+{% block title %}Konfigurasi Assistant AI - KSP AHNRFZI{% endblock %}
+
+{% block page_title %}Konfigurasi Assistant AI{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/components.css">
+<style>
+  /* ============================================================
+     AI CONFIGURATION - DESIGN v2
+     Panel Provider Aktif (atas) + Daftar Provider Model AI (bawah)
+     ============================================================ */
+
+  .ai-active-panel {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 55%, #1e40af 140%);
+    border: 1px solid #1e293b;
+    border-radius: 14px;
+    padding: 1.5rem 1.75rem;
+    margin-bottom: 1.75rem;
+    color: #e2e8f0;
+    box-shadow: 0 10px 30px -12px rgba(15, 23, 42, 0.55);
+  }
+
+  .ai-active-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+  }
+
+  .ai-active-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.3rem 0.8rem;
+    background: rgba(16, 185, 129, 0.16);
+    border: 1px solid rgba(16, 185, 129, 0.45);
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #6ee7b7;
+    white-space: nowrap;
+  }
+
+  .ai-active-badge .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.22);
+  }
+
+  .ai-active-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #f8fafc;
+    line-height: 1.25;
+  }
+
+  .ai-active-subtitle {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    margin-top: 0.15rem;
+  }
+
+  .ai-active-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 0.9rem 1.5rem;
+  }
+
+  .ai-active-item .k {
+    font-size: 0.66rem;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: #64748b;
+    margin-bottom: 0.25rem;
+  }
+
+  .ai-active-item .v {
+    font-size: 0.85rem;
+    color: #e2e8f0;
+    word-break: break-all;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  .ai-active-item .v.masked {
+    color: #a5b4fc;
+  }
+
+  .ai-active-actions {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid rgba(148, 163, 184, 0.22);
+  }
+
+  .btn-ai-ghost-light {
+    padding: 0.55rem 1.1rem;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(148, 163, 184, 0.4);
+    border-radius: 8px;
+    color: #e2e8f0;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.18s ease;
+  }
+
+  .btn-ai-ghost-light:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(148, 163, 184, 0.7);
+  }
+
+  .btn-ai-ghost-light:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  /* ---------- Judul bagian ---------- */
+  .ai-section-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-900);
+    margin-bottom: 0.35rem;
+  }
+
+  .ai-section-desc {
+    font-size: 0.85rem;
+    color: var(--text-600);
+    margin-bottom: 1.25rem;
+  }
+
+  .ai-provider-count {
+    display: inline-block;
+    margin-left: 0.5rem;
+    padding: 0.12rem 0.55rem;
+    background: var(--primary-100);
+    border: 1px solid var(--border-subtle);
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--primary-600);
+    vertical-align: middle;
+  }
+
+  /* ---------- Grid kartu ---------- */
+  .ai-provider-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  @media (min-width: 900px) {
+    .ai-provider-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  /* ---------- Kartu provider ---------- */
+  .ai-provider-card {
+    display: flex;
+    flex-direction: column;
+    background: var(--card-background);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .ai-provider-card:hover {
+    border-color: var(--primary-300, #93c5fd);
+    box-shadow: 0 6px 18px -10px rgba(15, 23, 42, 0.35);
+  }
+
+  .ai-provider-card.is-active {
+    border-color: var(--primary-600, #2563eb);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  }
+
+  .ai-pc-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    padding: 1.1rem 1.25rem;
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--input-background);
+  }
+
+  .ai-pc-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+    flex-shrink: 0;
+    background: var(--card-background);
+    border: 1px solid var(--border-subtle);
+  }
+
+  .ai-pc-id {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .ai-pc-name {
+    font-size: 0.98rem;
+    font-weight: 700;
+    color: var(--text-900);
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+  }
+
+  .ai-pc-type {
+    font-size: 0.72rem;
+    color: var(--text-600);
+    margin-top: 0.2rem;
+  }
+
+  .ai-badge {
+    display: inline-block;
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    border: 1px solid transparent;
+    white-space: nowrap;
+  }
+
+  .ai-badge-default {
+    background: var(--chip-background);
+    border-color: var(--chip-border);
+    color: var(--text-600);
+  }
+
+  .ai-badge-active {
+    background: var(--success-50, #dcfce7);
+    border-color: rgba(5, 150, 105, 0.35);
+    color: var(--success-800, #047857);
+  }
+
+  .ai-badge-idle {
+    background: var(--input-background);
+    border-color: var(--border-subtle);
+    color: var(--text-muted);
+  }
+
+  .ai-pc-body {
+    padding: 1.1rem 1.25rem;
+    flex: 1;
+  }
+
+  .ai-field {
+    margin-bottom: 0.85rem;
+  }
+
+  .ai-field:last-child {
+    margin-bottom: 0;
+  }
+
+  .ai-field > label {
+    display: block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-600);
+    margin-bottom: 0.32rem;
+  }
+
+  .ai-field input[type="text"],
+  .ai-field input[type="number"],
+  .ai-field input[type="password"],
+  .ai-field select,
+  .ai-field textarea {
+    width: 100%;
+    padding: 0.55rem 0.7rem;
+    font-size: 0.84rem;
+    background: var(--card-background);
+    border: 1px solid var(--input-border);
+    border-radius: 7px;
+    color: var(--text-900);
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  }
+
+  .ai-field input:focus,
+  .ai-field select:focus,
+  .ai-field textarea:focus {
+    outline: none;
+    border-color: var(--primary-600, #2563eb);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.13);
+  }
+
+  .ai-field textarea {
+    resize: vertical;
+    min-height: 62px;
+  }
+
+  .ai-key-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .ai-key-wrap input {
+    padding-right: 2.4rem !important;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: 0.06em;
+  }
+
+  .ai-key-toggle {
+    position: absolute;
+    right: 0.35rem;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    transition: color 0.18s ease, background 0.18s ease;
+  }
+
+  .ai-key-toggle:hover {
+    color: var(--primary-600, #2563eb);
+    background: var(--input-background);
+  }
+
+  .ai-key-status {
+    margin-top: 0.35rem;
+    font-size: 0.73rem;
+    color: var(--text-600);
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+  }
+
+  .ai-key-status code {
+    background: var(--input-background);
+    border: 1px solid var(--border-subtle);
+    border-radius: 4px;
+    padding: 0.05rem 0.35rem;
+    font-size: 0.72rem;
+    color: var(--text-800);
+  }
+
+  .ai-hint {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-top: 0.3rem;
+    font-style: italic;
+  }
+
+  .ai-pc-foot {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.9rem 1.25rem;
+    border-top: 1px solid var(--border-subtle);
+    background: var(--input-background);
+    flex-wrap: wrap;
+  }
+
+  .ai-btn {
+    flex: 1 1 0;
+    min-width: 108px;
+    padding: 0.55rem 0.7rem;
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    border-radius: 7px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.18s ease;
+  }
+
+  .ai-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  .ai-btn-test {
+    background: var(--card-background);
+    border-color: var(--primary-600, #2563eb);
+    color: var(--primary-600, #2563eb);
+  }
+
+  .ai-btn-test:hover:not(:disabled) {
+    background: var(--primary-100);
+  }
+
+  .ai-btn-save {
+    background: var(--success-800, #059669);
+    color: #fff;
+  }
+
+  .ai-btn-save:hover:not(:disabled) {
+    filter: brightness(1.08);
+  }
+
+  .ai-btn-activate {
+    background: var(--warning-50, #fef3c7);
+    border-color: rgba(217, 119, 6, 0.45);
+    color: var(--warning-800, #b45309);
+  }
+
+  .ai-btn-activate:hover:not(:disabled) {
+    background: #fde68a;
+  }
+
+  .ai-btn-activate.is-on {
+    background: var(--success-50, #dcfce7);
+    border-color: rgba(5, 150, 105, 0.4);
+    color: var(--success-800, #047857);
+  }
+
+  /* ---------- Indikator sinkronisasi kecil (tanpa teks) ---------- */
+  .ai-sync-dot {
+    display: inline-block;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: var(--primary-600, #2563eb);
+    vertical-align: middle;
+    margin-left: 0.35rem;
+    animation: aiPulse 1.1s ease-in-out infinite;
+  }
+
+  .ai-sync-dot.hidden { display: none; }
+
+  @keyframes aiPulse {
+    0%, 100% { opacity: 0.25; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1); }
+  }
+
+  /* ---------- Toast ---------- */
+  .ai-toast {
+    position: fixed;
+    right: 1.5rem;
+    bottom: 1.5rem;
+    max-width: 380px;
+    padding: 0.85rem 1.15rem;
+    border-radius: 9px;
+    background: var(--card-background);
+    border: 1px solid var(--border-subtle);
+    box-shadow: 0 12px 32px -14px rgba(15, 23, 42, 0.4);
+    font-size: 0.84rem;
+    font-weight: 500;
+    z-index: 1200;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(14px);
+    transition: all 0.25s ease;
+  }
+
+  .ai-toast.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+
+  .ai-toast.ok { border-color: rgba(5, 150, 105, 0.5); color: var(--success-800, #047857); }
+  .ai-toast.err { border-color: rgba(220, 38, 38, 0.45); color: var(--error-800, #b91c1c); }
+  .ai-toast.info { border-color: var(--primary-600, #2563eb); color: var(--primary-600, #2563eb); }
+
+  /* ---------- Modal konfirmasi ---------- */
+  .ai-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(3px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1300;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.22s ease, visibility 0.22s ease;
+    padding: 1rem;
+  }
+
+  .ai-modal-overlay.show {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .ai-modal {
+    background: var(--card-background);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    padding: 1.75rem;
+    width: 100%;
+    max-width: 420px;
+    transform: scale(0.95);
+    transition: transform 0.22s ease;
+  }
+
+  .ai-modal-overlay.show .ai-modal {
+    transform: scale(1);
+  }
+
+  .ai-modal h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-900);
+    margin-bottom: 0.6rem;
+  }
+
+  .ai-modal p {
+    font-size: 0.86rem;
+    color: var(--text-600);
+    margin-bottom: 1.4rem;
+  }
+
+  .ai-modal-actions {
+    display: flex;
+    gap: 0.6rem;
+    justify-content: flex-end;
+  }
+
+  @media (max-width: 640px) {
+    .ai-active-panel { padding: 1.15rem; }
+    .ai-active-grid { grid-template-columns: 1fr !important; gap: 0.7rem; }
+    .ai-active-title { font-size: 1rem; }
+    .ai-pc-head { padding: 0.95rem 1rem; }
+    .ai-pc-body { padding: 0.95rem 1rem; }
+    .ai-pc-foot { padding: 0.85rem 1rem; }
+    .ai-btn { flex: 1 1 100%; }
+    .ai-toast { left: 1rem; right: 1rem; max-width: none; }
+    .ai-field > label { font-size: 0.66rem; }
+    .ai-field input[type="text"], .ai-field input[type="number"],
+    .ai-field input[type="password"], .ai-field select, .ai-field textarea {
+      font-size: 0.82rem;
+      padding: 0.5rem 0.6rem;
+    }
+  }
+
+  /* Cegah konten halaman ini ikut memaksa lebar melebihi container */
+  .ai-provider-grid, .ai-provider-card, .ai-active-panel, .ai-active-grid {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .ai-provider-card .ai-field,
+  .ai-provider-card .ai-field input,
+  .ai-provider-card .ai-field select,
+  .ai-provider-card .ai-field textarea {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .ai-pc-id { min-width: 0; overflow-wrap: anywhere; }
+  .ai-active-item .v { overflow-wrap: anywhere; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="p-4 md:p-6">
+
+  <!-- ============ JUDUL HALAMAN ============ -->
+  <div class="flex flex-col md:flex-row md:items-end justify-between gap-3 mb-5">
+    <div>
+      <h1 class="text-2xl font-bold text-primary-900 mb-1">Konfigurasi Assistant AI</h1>
+      <p class="text-text-muted text-sm mb-1">
+        Kelola provider AI, kunci API, dan parameter model untuk Assistant AI KSP AHNRFZI.
+      </p>
+      <p class="text-xs text-text-secondary">
+        Pergantian provider tidak mengubah hak akses (RBAC), akses database, atau hak akses pengguna.
+      </p>
+    </div>
+  </div>
+
+  <!-- ============ BAGIAN 1: PANEL PROVIDER AI SEDANG AKTIF ============ -->
+  <section class="ai-active-panel" id="ai-active-panel" aria-live="polite">
+    <div class="ai-active-panel-header">
+      <span class="ai-active-badge"><span class="dot"></span>Provider AI Sedang Aktif</span>
+      <div class="flex-1 min-w-0">
+        <div class="ai-active-title" id="ai-active-name">Memuat konfigurasi...</div>
+        <div class="ai-active-subtitle" id="ai-active-subtitle">Mengambil provider aktif dari server</div>
+      </div>
+    </div>
+
+    <div class="ai-active-grid">
+      <div class="ai-active-item">
+        <div class="k">Provider</div>
+        <div class="v" id="ai-active-provider">-</div>
+      </div>
+      <div class="ai-active-item">
+        <div class="k">Model</div>
+        <div class="v" id="ai-active-model">-</div>
+      </div>
+      <div class="ai-active-item">
+        <div class="k">Endpoint Base URL</div>
+        <div class="v" id="ai-active-endpoint">-</div>
+      </div>
+      <div class="ai-active-item">
+        <div class="k">API Key</div>
+        <div class="v masked" id="ai-active-key">-</div>
+      </div>
+      <div class="ai-active-item">
+        <div class="k">Timeout</div>
+        <div class="v" id="ai-active-timeout">-</div>
+      </div>
+      <div class="ai-active-item">
+        <div class="k">Max Tokens</div>
+        <div class="v" id="ai-active-maxtokens">-</div>
+      </div>
+      <div class="ai-active-item">
+        <div class="k">Temperature</div>
+        <div class="v" id="ai-active-temperature">-</div>
+      </div>
+    </div>
+
+    <div class="ai-active-actions">
+      <button type="button" class="btn-ai-ghost-light" id="ai-active-test-btn">Uji Koneksi Aktif</button>
+    </div>
+  </section>
+
+  <!-- ============ BAGIAN 2: DAFTAR PROVIDER MODEL AI ============ -->
+  <section class="mb-8">
+    <h2 class="ai-section-title">
+      Daftar Provider Model AI
+      <span class="ai-provider-count" id="ai-provider-count">5 provider terdaftar</span>
+      <span class="ai-sync-dot" id="ai-sync-dot" title="Menyinkronkan data provider dari server" aria-hidden="true"></span>
+    </h2>
+    <p class="ai-section-desc">
+      Pilih salah satu provider untuk diaktifkan atau kelola parameter kunci API dan model.
+    </p>
+
+    <div class="ai-provider-grid" id="ai-provider-grid"></div>
+  </section>
+
+</div>
+
+<!-- ============ MODAL KONFIRMASI AKTIVASI ============ -->
+<div class="ai-modal-overlay" id="ai-activate-modal" role="dialog" aria-modal="true" aria-labelledby="ai-activate-modal-title">
+  <div class="ai-modal">
+    <h3 id="ai-activate-modal-title">Konfirmasi Aktivasi Provider</h3>
+    <p id="ai-activate-modal-text">Apakah Anda yakin ingin mengaktifkan provider ini?</p>
+    <div class="ai-modal-actions">
+      <button type="button" class="ai-btn ai-btn-test" id="ai-activate-cancel">Batal</button>
+      <button type="button" class="ai-btn ai-btn-save" id="ai-activate-confirm">Aktifkan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ TOAST ============ -->
+<div class="ai-toast" id="ai-toast" role="status" aria-live="polite"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  "use strict";
+
+  // ==========================================================
+  // KONFIGURASI STATIS PER PROVIDER (metadata tampilan)
+  // Nilai runtime (API key, model aktif) SELALU dari backend.
+  // ==========================================================
+  var PROVIDER_META = {
+    gemini: {
+      key: "gemini",
+      label: "Google Gemini",
+      icon: "⚡",
+      type: "Google Gemini API",
+      model: "gemini-1.5-flash",
+      endpoint: "https://generativelanguage.googleapis.com/v1beta",
+      timeout: 30,
+      maxTokens: 1000,
+      temperature: 0.7,
+      requiresKey: true,
+      badge: "Bawaan",
+      note: "Akses model Gemini melalui generativelanguage.googleapis.com. API key disimpan terpisah dari provider lain."
+    },
+    nvidia_nim: {
+      key: "nvidia_nim",
+      label: "NVIDIA NIM",
+      icon: "🟩",
+      type: "NVIDIA NIM API",
+      model: "nvidia/nemotron-3.5-bolt-e4b",
+      endpoint: "https://integrate.api.nvidia.com/v1",
+      timeout: 60,
+      maxTokens: 1000,
+      temperature: 0.7,
+      requiresKey: true,
+      badge: "Bawaan",
+      note: "NVIDIA NIM memakai protokol OpenAI-compatible (endpoint /chat/completions). API key terpisah dari provider lain."
+    },
+    openai: {
+      key: "openai",
+      label: "OpenAI",
+      icon: "🤖",
+      type: "OpenAI API",
+      model: "gpt-4o-mini",
+      endpoint: "https://api.openai.com/v1",
+      timeout: 30,
+      maxTokens: 1000,
+      temperature: 0.3,
+      requiresKey: true,
+      badge: "",
+      note: "Akses GPT-4o-mini dan model OpenAI lainnya. API key terpisah dari provider lain."
+    },
+    anthropic: {
+      key: "anthropic",
+      label: "Anthropic Claude",
+      icon: "📜",
+      type: "Anthropic Claude API",
+      model: "claude-3-haiku-20240307",
+      endpoint: "https://api.anthropic.com/v1",
+      timeout: 30,
+      maxTokens: 1000,
+      temperature: 0.3,
+      requiresKey: true,
+      badge: "",
+      note: "Akses Claude Haiku dan model Anthropic lainnya. API key terpisah dari provider lain."
+    },
+    rule_engine: {
+      key: "rule_engine",
+      label: "Rule Engine",
+      icon: "🧮",
+      type: "Rule Engine Lokal",
+      model: "local_rule_based",
+      endpoint: "",
+      timeout: 30,
+      maxTokens: 0,
+      temperature: 0.0,
+      requiresKey: false,
+      badge: "Bawaan",
+      note: "Logika berbasis aturan koperasi, berjalan lokal tanpa API Key. Dipakai sebagai fallback bawaan."
+    }
+  };
+
+  var REQUEST_TIMEOUT_MS = 15000;
+
+  // ==========================================================
+  // STATE
+  // ==========================================================
+  var state = {
+    providers: {},      // key -> data dari backend
+    active: "",         // key provider aktif
+    pendingActivate: "",// key yang menunggu konfirmasi
+    synced: false,      // true setelah data server berhasil dimuat
+    busy: {}            // key -> {test:bool, save:bool, activate:bool}
+  };
+
+  function $(id) { return document.getElementById(id); }
+
+  function meta(key) { return PROVIDER_META[key] || null; }
+
+  function token() {
+    try { return window.localStorage.getItem("token") || ""; }
+    catch (e) { return ""; }
+  }
+
+  // ==========================================================
+  // UTILITAS
+  // ==========================================================
+  function esc(value) {
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+
+  function toast(message, kind) {
+    var el = $("ai-toast");
+    if (!el) { return; }
+    el.textContent = message;
+    el.className = "ai-toast show " + (kind || "info");
+    clearTimeout(el._timer);
+    el._timer = setTimeout(function () {
+      el.className = "ai-toast " + (kind || "info");
+    }, 4200);
+  }
+
+  function setBusy(key, action, busy) {
+    if (!state.busy[key]) { state.busy[key] = {}; }
+    state.busy[key][action] = !!busy;
+    var map = {
+      test: "btn-test-" + key,
+      save: "btn-save-" + key,
+      activate: "btn-activate-" + key
+    };
+    var btn = $(map[action]);
+    if (!btn) { return; }
+    var labels = {
+      test: ["Tes Koneksi", "Menguji..."],
+      save: ["Simpan Perubahan", "Menyimpan..."],
+      activate: ["Aktifkan", "Mengaktifkan..."]
+    };
+    var pair = labels[action];
+    if (busy) {
+      btn.dataset.label = btn.textContent;
+      btn.textContent = pair[1];
+      btn.disabled = true;
+    } else {
+      if (btn.dataset.label) { btn.textContent = btn.dataset.label; }
+      btn.disabled = false;
+    }
+  }
+
+  // Masking murni tampilan. Tidak pernah menerima key lengkap dari server.
+  function maskKey(value) {
+    if (!value) { return ""; }
+    var s = String(value);
+    if (s.length <= 8) { return new Array(s.length + 1).join("•"); }
+    return s.slice(0, 4) + "••••••" + s.slice(-4);
+  }
+
+  // ==========================================================
+  // HTTP
+  // ==========================================================
+
+  // Ambil token dari localStorage (opsional). Cookie session adalah sumber
+  // autentikasi utama untuk halaman web; header hanya bonus.
+  function token() {
+    try { return window.localStorage.getItem("token") || ""; }
+    catch (e) { return ""; }
+  }
+
+  function buildHeaders(withAuthHeader, hasBody) {
+    var headers = { "Accept": "application/json" };
+    if (withAuthHeader) {
+      var jwt = token();
+      if (jwt) { headers["Authorization"] = "Bearer " + jwt; }
+    }
+    if (hasBody) { headers["Content-Type"] = "application/json"; }
+    return headers;
+  }
+
+  // Satu percobaan fetch dengan timeout.
+  function rawFetch(url, opts, withAuthHeader) {
+    var controller = (typeof AbortController !== "undefined") ? new AbortController() : null;
+    var timer = null;
+
+    if (controller) {
+      timer = setTimeout(function () { controller.abort(); }, REQUEST_TIMEOUT_MS);
+    }
+
+    return fetch(url, {
+      method: opts.method || "GET",
+      headers: buildHeaders(withAuthHeader, !!opts.body),
+      body: opts.body ? JSON.stringify(opts.body) : undefined,
+      credentials: "same-origin",
+      signal: controller ? controller.signal : undefined
+    }).then(function (resp) {
+      return resp.text().then(function (text) {
+        var data = null;
+        if (text) {
+          try { data = JSON.parse(text); } catch (e) { data = null; }
+        }
+        return { status: resp.status, ok: resp.ok, data: data };
+      });
+    }).finally(function () {
+      if (timer) { clearTimeout(timer); }
+    });
+  }
+
+  // Request dengan penanganan robust:
+  // - cookie session selalu ikut dikirim (credentials: same-origin)
+  // - jika 401 dan header Authorization dipakai, coba lagi TANPA header
+  //   (menangani token localStorage yang basi/kedaluwarsa)
+  function request(url, options) {
+    var opts = options || {};
+    var useHeader = !!token();
+
+    return rawFetch(url, opts, useHeader).catch(function (err) {
+      var aborted = err && (err.name === "AbortError" || err.code === 20);
+      var message = aborted
+        ? "Server tidak merespons dalam " + (REQUEST_TIMEOUT_MS / 1000) + " detik."
+        : "Tidak dapat terhubung ke server.";
+      var e = new Error(message);
+      e.handled = true;
+      throw e;
+    }).then(function (res) {
+      if (res.status === 401 && useHeader) {
+        // Header mungkin basi - ulangi dengan cookie session saja.
+        return rawFetch(url, opts, false).catch(function () { return res; });
+      }
+      return res;
+    });
+  }
+
+  function detailOf(res, fallback) {
+    if (res && res.data) {
+      if (res.data.detail) { return String(res.data.detail); }
+      if (res.data.message) { return String(res.data.message); }
+      if (res.data.error && res.data.error.message) { return String(res.data.error.message); }
+    }
+    return fallback;
+  }
+
+  function handleAuth(res) {
+    if (res.status === 401) {
+      toast("Sesi Anda telah berakhir. Silakan login kembali.", "err");
+      setTimeout(function () { window.location.href = "/login"; }, 1200);
+      return true;
+    }
+    if (res.status === 403) {
+      toast("Akses ditolak. Hanya Admin dan Admin Koperasi yang dapat mengelola konfigurasi AI.", "err");
+      return true;
+    }
+    return false;
+  }
+
+  // ==========================================================
+  // RENDER: PANEL PROVIDER AKTIF
+  // ==========================================================
+  function renderActivePanel() {
+    var key = state.active;
+    var info = state.providers[key] || null;
+    var m = key ? meta(key) : null;
+
+    if (!key || !m) {
+      $("ai-active-name").textContent = state.synced
+        ? "Belum ada provider aktif"
+        : "Memuat konfigurasi...";
+      $("ai-active-subtitle").textContent = state.synced
+        ? "Aktifkan salah satu provider di bawah"
+        : "Mengambil provider aktif dari server";
+      ["ai-active-provider", "ai-active-model", "ai-active-endpoint", "ai-active-key",
+       "ai-active-timeout", "ai-active-maxtokens", "ai-active-temperature"]
+        .forEach(function (id) { $(id).textContent = "-"; });
+      return;
+    }
+
+    var model = (info && info.current_model) ? info.current_model : m.model;
+    $("ai-active-name").textContent = m.label + " (" + model + ")";
+    $("ai-active-subtitle").textContent = (info && info.description) ? info.description : m.note;
+
+    $("ai-active-provider").textContent = key;
+    $("ai-active-model").textContent = model;
+    $("ai-active-endpoint").textContent =
+      ((info && info.base_url) ? info.base_url : m.endpoint) || "Tidak ada endpoint";
+
+    var masked = info ? info.current_api_key_masked : "";
+    $("ai-active-key").textContent = masked
+      ? masked
+      : (state.synced ? "Belum ada API Key" : "-");
+
+    $("ai-active-timeout").textContent =
+      ((info && info.timeout != null) ? info.timeout : m.timeout) + " detik";
+    $("ai-active-maxtokens").textContent =
+      (info && info.max_tokens != null) ? info.max_tokens : m.maxTokens;
+    $("ai-active-temperature").textContent =
+      (info && info.temperature != null) ? info.temperature : m.temperature;
+  }
+
+  // ==========================================================
+  // RENDER: KARTU PROVIDER
+  // ==========================================================
+  // Catatan: kartu dirender LANGSUNG dari konfigurasi default yang aman,
+  // sehingga halaman tidak pernah menampilkan kotak loading/error.
+  // Data backend hanya meng-hidrasi nilai yang relevan (TIDAK menimpa
+  // input API Key yang sedang diketik Admin).
+  function cardTemplate(key) {
+    var m = meta(key);
+    if (!m) { return ""; }
+    var info = state.providers[key] || null;
+    var isActive = state.synced ? (key === state.active) : false;
+    var hasKey = !!(info && info.current_api_key_masked);
+    var model = (info && info.current_model) ? info.current_model : m.model;
+    var endpoint = (info && info.base_url) ? info.base_url : m.endpoint;
+    var timeout = (info && info.timeout != null) ? info.timeout : m.timeout;
+    var maxTokens = (info && info.max_tokens != null) ? info.max_tokens : m.maxTokens;
+    var temperature = (info && info.temperature != null) ? info.temperature : m.temperature;
+    var note = (info && info.description) ? info.description : m.note;
+
+    var badgeHtml = m.badge
+      ? '<span class="ai-badge ai-badge-default">' + esc(m.badge) + "</span>"
+      : '<span class="ai-badge ai-badge-default">Custom</span>';
+
+    var activeHtml = isActive
+      ? '<span class="ai-badge ai-badge-active">Aktif</span>'
+      : '<span class="ai-badge ai-badge-idle">Belum Aktif</span>';
+
+    var keyStatus = !state.synced
+      ? "Status key belum dimuat dari server."
+      : (hasKey
+          ? "API Key tersimpan: <code>" + esc(info.current_api_key_masked) + "</code>"
+          : "API Key belum disimpan.");
+
+    return (
+      '<article class="ai-provider-card' + (isActive ? " is-active" : "") + '" data-provider="' + key + '">' +
+        '<header class="ai-pc-head">' +
+          '<div class="ai-pc-icon">' + m.icon + "</div>" +
+          '<div class="ai-pc-id">' +
+            '<div class="ai-pc-name">' + esc(m.label) + badgeHtml + activeHtml + "</div>" +
+            '<div class="ai-pc-type">' + esc(m.type) + " &middot; <code>" + esc(key) + "</code></div>" +
+          "</div>" +
+        "</header>" +
+
+        '<div class="ai-pc-body">' +
+          '<div class="ai-field">' +
+            '<label for="inp-name-' + key + '">Nama Provider</label>' +
+            '<input type="text" id="inp-name-' + key + '" value="' + esc(m.label) + '" data-field="name" data-provider="' + key + '" />' +
+          "</div>" +
+
+          '<div class="ai-field">' +
+            '<label for="inp-type-' + key + '">Tipe Provider</label>' +
+            '<select id="inp-type-' + key + '" data-field="type" data-provider="' + key + '">' +
+              '<option value="gemini">Google Gemini API</option>' +
+              '<option value="nvidia_nim">NVIDIA NIM API</option>' +
+              '<option value="openai">OpenAI API</option>' +
+              '<option value="anthropic">Anthropic Claude API</option>' +
+              '<option value="rule_engine">Rule Engine Lokal</option>' +
+            "</select>" +
+          "</div>" +
+
+          '<div class="ai-field">' +
+            '<label for="inp-model-' + key + '">Model Identifier</label>' +
+            '<input type="text" id="inp-model-' + key + '" value="' + esc(model) + '" data-field="model" data-provider="' + key + '" />' +
+          "</div>" +
+
+          '<div class="ai-field">' +
+            '<label for="inp-key-' + key + '">API Key</label>' +
+            '<div class="ai-key-wrap">' +
+              '<input type="password" id="inp-key-' + key + '" placeholder="Masukkan API Key ' + esc(m.label) + '..." data-field="api_key" data-provider="' + key + '" autocomplete="new-password" />' +
+              '<button type="button" class="ai-key-toggle" data-toggle-key="' + key + '" title="Tampilkan / sembunyikan API Key" aria-label="Tampilkan atau sembunyikan API Key">👁</button>' +
+            "</div>" +
+            '<div class="ai-key-status" id="key-status-' + key + '">' + keyStatus + "</div>" +
+            '<div class="ai-hint">Kosongkan jika tidak ingin mengubah kunci API saat ini.</div>' +
+          "</div>" +
+
+          '<div class="ai-field">' +
+            '<label for="inp-endpoint-' + key + '">Endpoint Base URL</label>' +
+            '<input type="text" id="inp-endpoint-' + key + '" value="' + esc(endpoint) + '" data-field="base_url" data-provider="' + key + '" />' +
+          "</div>" +
+
+          '<div class="ai-field">' +
+            '<label for="inp-timeout-' + key + '">Timeout (detik)</label>' +
+            '<input type="number" id="inp-timeout-' + key + '" min="5" max="120" value="' + esc(timeout) + '" data-field="timeout" data-provider="' + key + '" />' +
+          "</div>" +
+
+          '<div class="ai-field">' +
+            '<label for="inp-maxtokens-' + key + '">Max Tokens</label>' +
+            '<input type="number" id="inp-maxtokens-' + key + '" min="0" max="200000" value="' + esc(maxTokens) + '" data-field="max_tokens" data-provider="' + key + '" />' +
+          "</div>" +
+
+          '<div class="ai-field">' +
+            '<label for="inp-temp-' + key + '">Temperature</label>' +
+            '<input type="number" id="inp-temp-' + key + '" min="0" max="2" step="0.1" value="' + esc(temperature) + '" data-field="temperature" data-provider="' + key + '" />' +
+          "</div>" +
+
+          '<div class="ai-field">' +
+            '<label for="inp-note-' + key + '">Deskripsi / Catatan</label>' +
+            '<textarea id="inp-note-' + key + '" data-field="note" data-provider="' + key + '">' + esc(note) + "</textarea>" +
+          "</div>" +
+        "</div>" +
+
+        '<footer class="ai-pc-foot">' +
+          '<button type="button" class="ai-btn ai-btn-test" id="btn-test-' + key + '">Tes Koneksi</button>' +
+          '<button type="button" class="ai-btn ai-btn-save" id="btn-save-' + key + '">Simpan Perubahan</button>' +
+          '<button type="button" class="ai-btn ai-btn-activate' + (isActive ? " is-on" : "") + '" id="btn-activate-' + key + '">' +
+            (isActive ? "Aktif" : "Aktifkan") + "</button>" +
+        "</footer>" +
+      "</article>"
+    );
+  }
+
+  function renderProviderCards() {
+    var grid = $("ai-provider-grid");
+    if (!grid) { return; }
+    var keys = Object.keys(PROVIDER_META);
+    var html = "";
+    for (var i = 0; i < keys.length; i++) {
+      html += cardTemplate(keys[i]);
+    }
+    grid.innerHTML = html;
+
+    // Sinkronkan dropdown tipe provider dengan nilai key
+    keys.forEach(function (key) {
+      var sel = $("inp-type-" + key);
+      if (sel) { sel.value = key; }
+    });
+
+    $("ai-provider-count").textContent = keys.length + " provider terdaftar";
+  }
+
+  // Hidrasi: perbarui hanya bagian yang bergantung pada data server.
+  // Input API Key yang sedang diketik Admin TIDAK pernah ditimpa.
+  function hydrateCards() {
+    var keys = Object.keys(PROVIDER_META);
+    keys.forEach(function (key) {
+      var m = meta(key);
+      var info = state.providers[key] || null;
+      if (!info) { return; }
+
+      var isActive = key === state.active;
+      var hasKey = !!info.current_api_key_masked;
+
+      // Header: badge status
+      var card = document.querySelector('.ai-provider-card[data-provider="' + key + '"]');
+      if (card) {
+        card.classList.toggle("is-active", isActive);
+        var badges = card.querySelectorAll('.ai-badge');
+        if (badges.length >= 2) {
+          badges[1].className = "ai-badge " + (isActive ? "ai-badge-active" : "ai-badge-idle");
+          badges[1].textContent = isActive ? "Aktif" : "Belum Aktif";
+        }
+      }
+
+      // Status API Key (masked dari server)
+      var status = $("key-status-" + key);
+      if (status) {
+        status.innerHTML = hasKey
+          ? "API Key tersimpan: <code>" + esc(info.current_api_key_masked) + "</code>"
+          : "API Key belum disimpan.";
+      }
+
+      // Parameter server (hanya bila Admin belum mengedit)
+      var modelEl = $("inp-model-" + key);
+      if (modelEl && !modelEl.dataset.edited && info.current_model) {
+        modelEl.value = info.current_model;
+      }
+      var endpointEl = $("inp-endpoint-" + key);
+      if (endpointEl && !endpointEl.dataset.edited && info.base_url !== undefined) {
+        endpointEl.value = info.base_url;
+      }
+      var timeoutEl = $("inp-timeout-" + key);
+      if (timeoutEl && !timeoutEl.dataset.edited && info.timeout != null) {
+        timeoutEl.value = info.timeout;
+      }
+      var tokensEl = $("inp-maxtokens-" + key);
+      if (tokensEl && !tokensEl.dataset.edited && info.max_tokens != null) {
+        tokensEl.value = info.max_tokens;
+      }
+      var tempEl = $("inp-temp-" + key);
+      if (tempEl && !tempEl.dataset.edited && info.temperature != null) {
+        tempEl.value = info.temperature;
+      }
+      var noteEl = $("inp-note-" + key);
+      if (noteEl && !noteEl.dataset.edited && info.description) {
+        noteEl.value = info.description;
+      }
+
+      // Tombol aktifkan
+      var actBtn = $("btn-activate-" + key);
+      if (actBtn) {
+        actBtn.classList.toggle("is-on", isActive);
+        actBtn.textContent = isActive ? "Aktif" : "Aktifkan";
+      }
+    });
+  }
+
+  // ==========================================================
+  // AKSI: TES KONEKSI
+  // ==========================================================
+  function testConnection(key) {
+    var m = meta(key);
+    var input = $("inp-key-" + key);
+    var typed = input ? input.value.trim() : "";
+    var stored = (state.providers[key] || {}).current_api_key_masked || "";
+    var effective = typed || stored;
+
+    if (!effective) {
+      toast("Masukkan API Key untuk " + (m ? m.label : key) + " terlebih dahulu.", "err");
+      return;
+    }
+
+    var modelEl = $("inp-model-" + key);
+    var payload = {
+      provider: key,
+      model: modelEl ? modelEl.value.trim() : (m ? m.model : ""),
+      api_key: typed || ""
+    };
+
+    // Bila input kosong dan hanya ada masked key di server, backend memakai key tersimpan.
+    if (!payload.api_key) {
+      payload.use_stored = true;
+    }
+
+    setBusy(key, "test", true);
+    request("/api/v1/ai-config/test", { method: "POST", body: payload })
+      .then(function (res) {
+        if (handleAuth(res)) { return; }
+        if (!res.ok) {
+          toast("Tes koneksi gagal: " + detailOf(res, "HTTP " + res.status), "err");
+          return;
+        }
+        var d = res.data || {};
+        if (d.success) {
+          toast(d.message || "Koneksi ke " + (m ? m.label : key) + " berhasil.", "ok");
+        } else {
+          toast(d.message || "Koneksi ke " + (m ? m.label : key) + " gagal.", "err");
+        }
+      })
+      .catch(function (err) {
+        toast(err.message || "Gagal melakukan tes koneksi.", "err");
+      })
+      .finally(function () {
+        setBusy(key, "test", false);
+      });
+  }
+
+  // ==========================================================
+  // AKSI: SIMPAN PERUBAHAN
+  // ==========================================================
+  function saveProvider(key) {
+    var m = meta(key);
+    var input = $("inp-key-" + key);
+    var typed = input ? input.value.trim() : "";
+    var modelEl = $("inp-model-" + key);
+
+    // Kosongkan = pertahankan API Key lama. Backend menerapkan aturan yang sama.
+    var payload = {
+      provider: key,
+      model: modelEl ? modelEl.value.trim() : (m ? m.model : ""),
+      api_key: typed
+    };
+
+    setBusy(key, "save", true);
+    request("/api/v1/ai-config/save", { method: "POST", body: payload })
+      .then(function (res) {
+        if (handleAuth(res)) { return; }
+        if (!res.ok) {
+          toast("Gagal menyimpan: " + detailOf(res, "HTTP " + res.status), "err");
+          return;
+        }
+        var d = res.data || {};
+        if (d.status === "success") {
+          toast(d.message || "Konfigurasi " + (m ? m.label : key) + " berhasil disimpan.", "ok");
+          return loadProviders();
+        }
+        toast(d.message || "Gagal menyimpan konfigurasi.", "err");
+      })
+      .catch(function (err) {
+        toast(err.message || "Gagal menyimpan konfigurasi.", "err");
+      })
+      .finally(function () {
+        setBusy(key, "save", false);
+      });
+  }
+
+  // ==========================================================
+  // AKSI: AKTIFKAN
+  // ==========================================================
+  function openActivateModal(key) {
+    var m = meta(key);
+    var info = state.providers[key] || {};
+    var modelEl = $("inp-model-" + key);
+    var model = modelEl ? modelEl.value.trim() : (m ? m.model : "-");
+
+    state.pendingActivate = key;
+    $("ai-activate-modal-text").textContent =
+      "Aktifkan provider " + (m ? m.label : key) + " dengan model " + model +
+      "? Provider aktif sebelumnya akan diganti setelah aktivasi berhasil.";
+    $("ai-activate-modal").classList.add("show");
+  }
+
+  function closeActivateModal() {
+    $("ai-activate-modal").classList.remove("show");
+    state.pendingActivate = "";
+  }
+
+  function confirmActivate() {
+    var key = state.pendingActivate;
+    if (!key) { closeActivateModal(); return; }
+    var m = meta(key);
+
+    setBusy(key, "activate", true);
+    request("/api/v1/ai-config/activate", { method: "POST", body: { provider: key } })
+      .then(function (res) {
+        if (handleAuth(res)) { return; }
+        if (!res.ok) {
+          // Provider aktif sebelumnya tetap dipertahankan.
+          toast("Gagal mengaktifkan: " + detailOf(res, "HTTP " + res.status), "err");
+          return;
+        }
+        var d = res.data || {};
+        if (d.status === "success") {
+          toast(d.message || "Provider " + (m ? m.label : key) + " aktif.", "ok");
+          return loadProviders();
+        }
+        toast(d.message || "Gagal mengaktifkan provider.", "err");
+      })
+      .catch(function (err) {
+        toast(err.message || "Gagal mengaktifkan provider.", "err");
+      })
+      .finally(function () {
+        setBusy(key, "activate", false);
+        // Label tombol mengikuti status provider (Aktif / Aktifkan)
+        var actBtn = $("btn-activate-" + key);
+        if (actBtn) { actBtn.textContent = (key === state.active) ? "Aktif" : "Aktifkan"; }
+        closeActivateModal();
+      });
+  }
+
+  // ==========================================================
+  // AKSI: UJI KONEKSI PROVIDER AKTIF
+  // ==========================================================
+  function testActive() {
+    var key = state.active;
+    if (!key) {
+      toast("Belum ada provider aktif untuk diuji.", "err");
+      return;
+    }
+    testConnection(key);
+  }
+
+  // ==========================================================
+  // LOAD DATA (hidrasi, tanpa merusak tampilan utama)
+  // ==========================================================
+  function setSyncing(on) {
+    var dot = $("ai-sync-dot");
+    if (dot) { dot.classList.toggle("hidden", !on); }
+  }
+
+  function loadProviders() {
+    setSyncing(true);
+
+    return request("/api/v1/ai-config/providers", { method: "GET" })
+      .then(function (res) {
+        if (res.status === 401) {
+          // Sesi berakhir - arahkan ke login, jangan tampilkan error di area utama
+          toast("Sesi Anda telah berakhir. Silakan login kembali.", "err");
+          setTimeout(function () { window.location.href = "/login"; }, 1200);
+          return;
+        }
+        if (res.status === 403) {
+          // Tidak berwenang - cukup notifikasi ringan
+          toast("Akses ditolak. Hanya Admin dan Admin Koperasi yang dapat mengelola konfigurasi AI.", "err");
+          return;
+        }
+        if (!res.ok) {
+          toast("Gagal memuat data provider dari server.", "err");
+          return;
+        }
+
+        var payload = res.data || {};
+        var list = payload.providers || [];
+        state.providers = {};
+        for (var i = 0; i < list.length; i++) {
+          state.providers[list[i].value] = list[i];
+        }
+        state.active = payload.active_provider || payload.provider || "";
+
+        // Jika backend tidak mengirim provider aktif, cari dari data.
+        if (!state.active) {
+          for (var key in state.providers) {
+            if (Object.prototype.hasOwnProperty.call(state.providers, key)) {
+              if (state.providers[key].is_active) { state.active = key; break; }
+            }
+          }
+        }
+        state.synced = true;
+
+        renderActivePanel();
+        hydrateCards();
+      })
+      .catch(function (err) {
+        // Kegagalan API hanya jadi notifikasi kecil; struktur halaman tetap utuh.
+        toast(err.message || "Gagal memuat data provider dari server.", "err");
+      })
+      .finally(function () {
+        setSyncing(false);
+      });
+  }
+
+  // ==========================================================
+  // EVENT BINDING
+  // ==========================================================
+  function onGridClick(e) {
+    var toggle = e.target.closest ? e.target.closest("[data-toggle-key]") : null;
+    if (toggle) {
+      var tKey = toggle.getAttribute("data-toggle-key");
+      var tInput = $("inp-key-" + tKey);
+      if (tInput) {
+        var visible = tInput.type === "text";
+        tInput.type = visible ? "password" : "text";
+        toggle.textContent = visible ? "👁" : "🙈";
+        toggle.setAttribute("aria-label", visible ? "Tampilkan API Key" : "Sembunyikan API Key");
+      }
+      return;
+    }
+
+    var btn = e.target.closest ? e.target.closest("button[id^='btn-']") : null;
+    if (!btn) { return; }
+    var id = btn.id;
+    var m = id.match(/^btn-(test|save|activate)-(.+)$/);
+    if (!m) { return; }
+    var action = m[1];
+    var key = m[2];
+    if (!meta(key)) { return; }
+
+    if (action === "test") { testConnection(key); }
+    else if (action === "save") { saveProvider(key); }
+    else if (action === "activate") { openActivateModal(key); }
+  }
+
+  function bind() {
+    var grid = $("ai-provider-grid");
+    if (grid) { grid.addEventListener("click", onGridClick); }
+
+    var activeTest = $("ai-active-test-btn");
+    if (activeTest) { activeTest.addEventListener("click", testActive); }
+
+    var cancel = $("ai-activate-cancel");
+    if (cancel) { cancel.addEventListener("click", closeActivateModal); }
+
+    var confirm = $("ai-activate-confirm");
+    if (confirm) { confirm.addEventListener("click", confirmActivate); }
+
+    var overlay = $("ai-activate-modal");
+    if (overlay) {
+      overlay.addEventListener("click", function (e) {
+        if (e.target === overlay) { closeActivateModal(); }
+      });
+    }
+
+    // Tandai field yang diubah Admin agar tidak ditimpa saat hidrasi data server.
+    if (grid) {
+      grid.addEventListener("input", function (e) {
+        var el = e.target;
+        if (el && el.dataset && el.dataset.field) { el.dataset.edited = "1"; }
+      });
+      grid.addEventListener("change", function (e) {
+        var el = e.target;
+        if (el && el.dataset && el.dataset.field) { el.dataset.edited = "1"; }
+      });
+    }
+
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") { closeActivateModal(); }
+    });
+  }
+
+  // ==========================================================
+  // INIT
+  // ==========================================================
+  function init() {
+    // 1. Tampilkan struktur halaman LANGSUNG dari konfigurasi default aman.
+    //    Tidak ada kotak loading / kotak error di area utama.
+    renderProviderCards();
+    renderActivePanel();
+
+    // 2. Pasang event listener
+    bind();
+
+    // 3. Hidrasi dengan data server (tidak mengubah struktur)
+    loadProviders();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+
+  // Expose untuk kebutuhan debugging/testing.
+  window.__aiConfig = {
+    state: state,
+    reload: loadProviders,
+    test: testConnection,
+    save: saveProvider,
+    activate: confirmActivate
+  };
+})();
+</script>
+{% endblock %}

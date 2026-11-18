@@ -1,0 +1,734 @@
+{% extends "layouts/dashboard_layout.html" %}
+
+{% block title %}Profil Saya & Keamanan Akun - KSP AHNRFZI{% endblock %}
+{% block page_title %}Profil Saya & Keamanan Akun{% endblock %}
+
+{% block content %}
+<div style="display: flex; flex-direction: column; gap: 1.5rem;">
+  <!-- TOP BANNER PROFILE SUMMARY -->
+  <div class="card card-glass" style="padding: 2rem; position: relative; overflow: hidden; background: linear-gradient(135deg, rgba(37,99,235,0.12) 0%, rgba(16,185,129,0.08) 100%);">
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem;">
+      <div style="display: flex; align-items: center; gap: 1.5rem;">
+        <div style="width: 72px; height: 72px; border-radius: 50%; background: var(--primary-gradient); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 800; box-shadow: var(--shadow-md);">
+          {{ current_user.username[:2].upper() }}
+        </div>
+        <div>
+          <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.25rem;">
+            <h2 style="font-size: 1.4rem; font-weight: 800; margin: 0;">{{ current_user.full_name }}</h2>
+            <span class="badge badge-success" style="font-size: 0.75rem; padding: 0.25rem 0.6rem;">● AKUN AKTIF</span>
+          </div>
+          <p style="font-size: 0.88rem; color: var(--text-muted); margin: 0;">
+            @{{ current_user.username }} &bull; {{ current_user.email }} &bull; Peran Aktif: <strong>{{ active_role }}</strong>
+          </p>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        {% for r in current_user.roles %}
+          <span class="badge {% if r.code == active_role %}badge-primary{% else %}badge-info{% endif %}" style="font-size: 0.8rem; padding: 0.4rem 0.8rem;">
+            {{ r.name }}
+          </span>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN PROFILE GRID: 3 PILLARS + SECURITY -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
+    
+    <!-- 1. DATA AKUN & RBAC PERMISSIONS -->
+    <div class="card card-glass">
+      <div class="card-header">
+        <div class="card-title">
+          <span>🔐</span>
+          <span>Detail Akun & Hak Akses (RBAC)</span>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.88rem;">
+        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.5rem;">
+          <span style="color: var(--text-muted);">ID Pengguna:</span>
+          <span style="font-weight: 600;">#{{ current_user.id }}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.5rem;">
+          <span style="color: var(--text-muted);">Username:</span>
+          <span style="font-weight: 600;">{{ current_user.username }}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.5rem;">
+          <span style="color: var(--text-muted);">Email:</span>
+          <span style="font-weight: 600;">{{ current_user.email }}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.5rem;">
+          <span style="color: var(--text-muted);">Nomor Telepon:</span>
+          <span style="font-weight: 600;">{{ current_user.phone_number or '-' }}</span>
+        </div>
+        
+        <div style="margin-top: 0.5rem;">
+          <div style="color: var(--text-muted); font-size: 0.8rem; font-weight: 700; margin-bottom: 0.5rem; text-transform: uppercase;">
+            Izin Granular Aktif ({{ user_perms|length }} Permissions):
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 0.35rem; max-height: 140px; overflow-y: auto; padding: 0.25rem;">
+            {% for perm in user_perms %}
+              <span class="badge" style="background: rgba(37,99,235,0.1); color: var(--primary); font-size: 0.72rem; font-family: monospace; padding: 0.2rem 0.5rem; border: 1px solid rgba(37,99,235,0.2);">
+                {{ perm }}
+              </span>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. DATA KEPEGAWAIAN HRD (EMPLOYEE) -->
+    <div class="card card-glass">
+      <div class="card-header">
+        <div class="card-title">
+          <span>💼</span>
+          <span>Data Kepegawaian (HR AHNRFZI)</span>
+        </div>
+      </div>
+      {% if current_user.employee %}
+      <div style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.88rem;">
+        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.5rem;">
+          <span style="color: var(--text-muted);">NIP Pegawai:</span>
+          <span style="font-weight: 700; color: var(--primary);">{{ current_user.employee.nip }}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.5rem;">
+          <span style="color: var(--text-muted);">Divisi / Departemen:</span>
+          <span style="font-weight: 600;">{{ current_user.employee.department }}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.5rem;">
+          <span style="color: var(--text-muted);">Jabatan:</span>
+          <span style="font-weight: 600;">{{ current_user.employee.position }}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.5rem;">
+          <span style="color: var(--text-muted);">Status Kerja:</span>
+          <span class="badge badge-success" style="font-size: 0.72rem;">{{ current_user.employee.employment_status }}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.5rem;">
+          <span style="color: var(--text-muted);">Gaji Pokok & Tunjangan:</span>
+          <span style="font-weight: 700; color: var(--success);">
+            Rp {{ "{:,.0f}".format(current_user.employee.base_salary or 0).replace(",", ".") }}
+          </span>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: var(--text-muted);">Bank Payroll:</span>
+          <span style="font-weight: 600;">{{ current_user.employee.payroll_bank_name }} ({{ current_user.employee.payroll_bank_account }})</span>
+        </div>
+      </div>
+      {% else %}
+      <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
+        <p>Akun ini tidak terhubung sebagai Pegawai Internal AHNRFZI.</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- 3. DATA KEANGGOTAAN KOPERASI (MEMBER) -->
+    <div class="card card-glass">
+      <div class="card-header">
+        <div class="card-title">
+          <span>🏛️</span>
+          <span>Keanggotaan Koperasi (Member)</span>
+        </div>
+      </div>
+      {% if current_user.member %}
+      <div style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.88rem;">
+        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.5rem;">
+          <span style="color: var(--text-muted);">Nomor Anggota KSP:</span>
+          <span style="font-weight: 700; color: var(--accent);">{{ current_user.member.member_no }}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.5rem;">
+          <span style="color: var(--text-muted);">NIK KTP:</span>
+          <span style="font-weight: 600; font-family: monospace;">{{ current_user.member.nik }}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.5rem;">
+          <span style="color: var(--text-muted);">Status Keanggotaan:</span>
+          <span class="badge badge-primary" style="font-size: 0.72rem;">{{ current_user.member.status }}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.5rem;">
+          <span style="color: var(--text-muted);">Tanggal Bergabung:</span>
+          <span style="font-weight: 600;">{{ current_user.member.join_date }}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: var(--text-muted);">Alamat Domisili:</span>
+          <span style="font-weight: 500; font-size: 0.82rem; text-align: right; max-width: 60%;">{{ current_user.member.address }}</span>
+        </div>
+      </div>
+      {% else %}
+      <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
+        <p>Pengguna belum terdaftar sebagai Anggota Koperasi Simpan Pinjam.</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- 4. GANTI KATA SANDI (SECURITY CARD) -->
+    <div class="card card-glass" id="change-password-card">
+      <div class="card-header">
+        <div class="card-title">
+          <span>🔑</span>
+          <span>Ubah Kata Sandi (Password Security)</span>
+        </div>
+      </div>
+      <form id="change-password-form" onsubmit="handlePasswordChange(event)" style="display: flex; flex-direction: column; gap: 1rem;">
+        <div class="form-group">
+          <label class="form-label">Kata Sandi Saat Ini</label>
+          <input type="password" id="current_password" class="form-control" placeholder="Masukkan kata sandi lama" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Kata Sandi Baru (Min. 8 Karakter)</label>
+          <input type="password" id="new_password" class="form-control" placeholder="Masukkan kata sandi baru" minlength="8" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Konfirmasi Kata Sandi Baru</label>
+          <input type="password" id="confirm_password" class="form-control" placeholder="Ulangi kata sandi baru" minlength="8" required />
+        </div>
+        <button type="submit" class="btn btn-primary" id="btn-save-password" style="width: 100%; margin-top: 0.5rem;">
+          Simpan Kata Sandi Baru
+        </button>
+      </form>
+    </div>
+
+    <!-- 5. INTEGRASI TELEGRAM BOT & NOTIFIKASI -->
+    <div class="card card-glass" id="telegram-integration-card" style="grid-column: 1 / -1;">
+      <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+        <div class="card-title">
+          <span>✈️</span>
+          <span>Integrasi Notifikasi Telegram Bot KSP AHNRFZI</span>
+        </div>
+        <div id="tg-status-badge">
+          <span class="badge" style="background: rgba(100,116,139,0.2); color: var(--text-muted); font-size: 0.75rem;">MEMUAT...</span>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 1.5rem; font-size: 0.9rem;">
+        <!-- Alert Banner jika Bot belum dikonfigurasi admin -->
+        <div id="tg-unconfigured-alert" style="display: none; padding: 1rem; border-radius: 8px; background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); color: #d97706;">
+          ⚠️ <strong>Telegram Bot Belum Dikonfigurasi di Server</strong><br>
+          <span style="font-size: 0.85rem;">Administrator belum mengisi <code>TELEGRAM_BOT_TOKEN</code> dan <code>TELEGRAM_BOT_USERNAME</code> pada file konfigurasi backend. Notifikasi In-App tetap berfungsi normal.</span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
+          
+          <!-- Kolom Kiri: Status Akun & Tindakan Koneksi -->
+          <div style="display: flex; flex-direction: column; gap: 1rem; border-right: 1px solid var(--border-subtle); padding-right: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <h4 style="font-size: 0.95rem; font-weight: 700; margin: 0; color: var(--text-main);">Status Koneksi Akun</h4>
+              <button type="button" class="btn btn-sm btn-secondary" onclick="loadTelegramStatus(true)" id="btn-refresh-tg" title="Perbarui Status" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">
+                🔄 Segarkan
+              </button>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 0.6rem; font-size: 0.88rem;">
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.4rem;">
+                <span style="color: var(--text-muted);">Status:</span>
+                <span id="tg-info-status" style="font-weight: 600;">-</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.4rem;">
+                <span style="color: var(--text-muted);">Username Telegram:</span>
+                <span id="tg-info-username" style="font-weight: 600;">-</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.4rem;">
+                <span style="color: var(--text-muted);">Chat ID:</span>
+                <span id="tg-info-chatid" style="font-weight: 600; font-family: monospace;">-</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.4rem;">
+                <span style="color: var(--text-muted);">Terhubung Sejak:</span>
+                <span id="tg-info-connected-at" style="font-weight: 600;">-</span>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.5rem;">
+              <button type="button" class="btn btn-primary" id="btn-connect-telegram" onclick="handleConnectTelegram()" style="background: #229ED9; border-color: #229ED9; display: flex; align-items: center; gap: 0.5rem;">
+                <span>✈️</span>
+                <span>Hubungkan Telegram</span>
+              </button>
+              <button type="button" class="btn btn-outline" id="btn-disconnect-telegram" onclick="handleDisconnectTelegram()" style="display: none; border-color: #ef4444; color: #ef4444;">
+                Putuskan Telegram
+              </button>
+              <button type="button" class="btn btn-secondary" id="btn-test-telegram" onclick="handleSendTestNotification()" style="display: none;">
+                🔔 Kirim Notifikasi Uji Coba
+              </button>
+            </div>
+          </div>
+
+          <!-- Kolom Kanan: Preferensi Saluran & Kategori Notifikasi -->
+          <div style="display: flex; flex-direction: column; gap: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <h4 style="font-size: 0.95rem; font-weight: 700; margin: 0; color: var(--text-main);">Preferensi Saluran & Kategori</h4>
+              <button type="button" class="btn btn-sm btn-primary" id="btn-save-preferences" onclick="saveNotificationPreferences()">
+                Simpan Preferensi
+              </button>
+            </div>
+
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0;">
+              In-App Notification adalah saluran utama resmi yang selalu aktif. Telegram adalah saluran opsional personal Anda.
+            </p>
+
+            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+              <!-- Master Toggle Telegram -->
+              <label style="display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.8rem; border-radius: 8px; background: rgba(37,99,235,0.06); cursor: pointer;">
+                <div>
+                  <strong style="font-size: 0.88rem;">Aktifkan Notifikasi Telegram</strong>
+                  <div style="font-size: 0.78rem; color: var(--text-muted);">Kirim pemberitahuan penting ke akun Telegram Anda</div>
+                </div>
+                <input type="checkbox" id="pref-telegram-enabled" style="width: 1.25rem; height: 1.25rem; accent-color: var(--primary); cursor: pointer;" />
+              </label>
+
+              <!-- Category Toggles -->
+              {% set can_loans = ('loan.view' in user_perms or 'loan.create' in user_perms or active_role in ['ADMIN_KOPERASI', 'ANGGOTA', 'MANAGER', 'KETUA_UMUM']) %}
+              {% set can_inst = ('installment.view' in user_perms or 'installment.payment' in user_perms or active_role in ['ADMIN_KOPERASI', 'ANGGOTA', 'MANAGER', 'KASIR']) %}
+              {% set can_cashier = ('cashier.view' in user_perms or 'cashier.transaction' in user_perms or active_role in ['ADMIN_KOPERASI', 'KASIR', 'PENGAWAS_PEMBINA', 'MANAGER']) %}
+              {% set can_hrd = ('employee.view' in user_perms or 'employee.manage' in user_perms or active_role in ['ADMIN_KOPERASI', 'HRD', 'MANAGER', 'IT_PUSAT']) %}
+
+              <div id="tg-categories-container" style="display: flex; flex-direction: column; gap: 0.5rem; padding-left: 0.5rem; transition: opacity 0.2s ease;">
+                <label style="display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; cursor: pointer;">
+                  <span>📌 Notifikasi Pinjaman (Pengajuan, Verifikasi, Persetujuan, Pencairan)</span>
+                  <input type="checkbox" id="pref-notify-loans" class="tg-sub-pref" style="accent-color: var(--primary);" {% if not can_loans %}data-perm-disabled="true" disabled title="Hanya untuk anggota & pengelola pinjaman"{% endif %} />
+                </label>
+                <label style="display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; cursor: pointer;">
+                  <span>🔔 Pengingat & Pembayaran Angsuran</span>
+                  <input type="checkbox" id="pref-notify-installments" class="tg-sub-pref" style="accent-color: var(--primary);" {% if not can_inst %}data-perm-disabled="true" disabled title="Hanya untuk anggota & petugas angsuran"{% endif %} />
+                </label>
+                <label style="display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; cursor: pointer;">
+                  <span>💰 Transaksi Kasir & Tutup Kas {% if not can_cashier %}<small style="color: var(--text-muted);">(Wewenang Kasir/Pengawas)</small>{% endif %}</span>
+                  <input type="checkbox" id="pref-notify-cashier" class="tg-sub-pref" style="accent-color: var(--primary);" {% if not can_cashier %}data-perm-disabled="true" disabled title="Wewenang terbatas untuk Kasir & Pengawas"{% endif %} />
+                </label>
+                <label style="display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; cursor: pointer;">
+                  <span>💼 Informasi Kepegawaian & HRD {% if not can_hrd %}<small style="color: var(--text-muted);">(Wewenang HRD/Staf)</small>{% endif %}</span>
+                  <input type="checkbox" id="pref-notify-hrd" class="tg-sub-pref" style="accent-color: var(--primary);" {% if not can_hrd %}data-perm-disabled="true" disabled title="Wewenang terbatas untuk HRD & Pimpinan"{% endif %} />
+                </label>
+                <label style="display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; cursor: pointer;">
+                  <span>ℹ️ Pengumuman Sistem & Uji Coba</span>
+                  <input type="checkbox" id="pref-notify-system" class="tg-sub-pref" style="accent-color: var(--primary);" />
+                </label>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL HUBUNGKAN TELEGRAM -->
+<div id="telegram-link-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
+  <div class="card card-glass" style="max-width: 480px; width: 90%; padding: 1.5rem; position: relative;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+      <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem;">
+        <span>✈️</span>
+        <span>Hubungkan Akun Telegram</span>
+      </h3>
+      <button type="button" onclick="closeTelegramModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted);">&times;</button>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 1rem; font-size: 0.88rem;">
+      <p style="margin: 0; color: var(--text-muted);">
+        Tautan di bawah dibuat khusus untuk akun Anda. Berlaku selama <strong>10 menit</strong> dan hanya dapat digunakan <strong>1 kali</strong>.
+      </p>
+
+      <div style="padding: 1rem; border-radius: 8px; background: rgba(34,158,217,0.08); border: 1px dashed #229ED9; text-align: center;">
+        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;">Tautan Deep-Link Telegram:</div>
+        <div id="tg-modal-link-display" style="font-family: monospace; font-size: 0.82rem; word-break: break-all; margin-bottom: 0.75rem; color: #229ED9; font-weight: 600;">-</div>
+        <div style="display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;">
+          <a id="tg-modal-open-btn" href="#" target="_blank" class="btn btn-primary" style="background: #229ED9; border-color: #229ED9; text-decoration: none;">
+            Buka di Telegram & Start
+          </a>
+          <button type="button" class="btn btn-secondary" onclick="copyTelegramLink()">
+            Salin Tautan
+          </button>
+        </div>
+      </div>
+
+      <div id="tg-modal-polling-status" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-size: 0.82rem; color: #229ED9; background: rgba(34,158,217,0.08); padding: 0.6rem; border-radius: 6px;">
+        <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #229ED9;"></span>
+        <span>Menunggu Anda menekan <strong>START</strong> di Telegram...</span>
+      </div>
+
+      <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.4;">
+        <strong>Langkah Menghubungkan:</strong><br>
+        1. Klik tombol <strong>Buka di Telegram & Start</strong> di atas.<br>
+        2. Aplikasi Telegram akan terbuka dengan Bot resmi KSP AHNRFZI.<br>
+        3. Tekan tombol <strong>START</strong> di dalam Telegram.<br>
+        4. Sistem akan otomatis mendeteksi koneksi dan memperbarui status akun Anda.
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem;">
+        <button type="button" class="btn btn-primary" onclick="checkTelegramLinkComplete()">
+          Cek Status Koneksi
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Variabel global Telegram Integration (deklarasi tunggal)
+
+async function handlePasswordChange(event) {
+  event.preventDefault();
+  const current_password = document.getElementById("current_password").value;
+  const new_password = document.getElementById("new_password").value;
+  const confirm_password = document.getElementById("confirm_password").value;
+  const btn = document.getElementById("btn-save-password");
+
+  if (new_password !== confirm_password) {
+    App.showToast("Konfirmasi kata sandi baru tidak cocok!", "error");
+    return;
+  }
+
+  if (new_password.length < 8) {
+    App.showToast("Kata sandi baru minimal 8 karakter!", "error");
+    return;
+  }
+
+  try {
+    btn.disabled = true;
+    btn.innerText = "Memproses...";
+    const res = await fetch("/api/v1/auth/change-password", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ current_password, new_password, confirm_password })
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      App.showToast(data.message || "Kata sandi berhasil diperbarui!", "success");
+      document.getElementById("change-password-form").reset();
+    } else {
+      App.showToast(data.detail || "Gagal mengubah kata sandi.", "error");
+    }
+  } catch (err) {
+    App.showToast("Terjadi kesalahan jaringan.", "error");
+  } finally {
+    btn.disabled = false;
+    btn.innerText = "Simpan Kata Sandi Baru";
+  }
+}
+
+// -------------------------------------------------------------
+// TELEGRAM INTEGRATION UI LOGIC
+// -------------------------------------------------------------
+let currentDeepLink = "";
+let tgPollInterval = null;
+let tgPollTimeoutId = null;
+
+/**
+ * Render status badge & info ke state Belum Terhubung.
+ * Dipanggil saat: error, response gagal, atau is_connected=false.
+ */
+function _renderTelegramDisconnected(isBotConfigured) {
+  const statusBadge   = document.getElementById("tg-status-badge");
+  const infoStatus    = document.getElementById("tg-info-status");
+  const infoUser      = document.getElementById("tg-info-username");
+  const infoChat      = document.getElementById("tg-info-chatid");
+  const infoConnAt    = document.getElementById("tg-info-connected-at");
+  const btnConnect    = document.getElementById("btn-connect-telegram");
+  const btnDisconnect = document.getElementById("btn-disconnect-telegram");
+  const btnTest       = document.getElementById("btn-test-telegram");
+
+  if (statusBadge)   statusBadge.innerHTML = '<span class="badge" style="background:rgba(245,158,11,0.2);color:#d97706;font-size:0.75rem;">○ BELUM TERHUBUNG</span>';
+  if (infoStatus)    infoStatus.innerHTML  = '<span style="color:var(--text-muted);">Belum Terhubung</span>';
+  if (infoUser)      infoUser.innerText    = '-';
+  if (infoChat)      infoChat.innerText    = '-';
+  if (infoConnAt)    infoConnAt.innerText  = '-';
+  if (btnConnect)  { btnConnect.style.display    = "inline-flex"; btnConnect.disabled = !isBotConfigured; }
+  if (btnDisconnect) btnDisconnect.style.display = "none";
+  if (btnTest)       btnTest.style.display       = "none";
+}
+
+/**
+ * Render status badge ke state error/offline agar tidak stuck di MEMUAT.
+ */
+function _renderTelegramError(isNetworkError) {
+  const statusBadge = document.getElementById("tg-status-badge");
+  if (statusBadge) {
+    statusBadge.innerHTML = isNetworkError
+      ? '<span class="badge" style="background:rgba(239,68,68,0.15);color:#ef4444;font-size:0.75rem;">⚠ GAGAL MEMUAT</span>'
+      : '<span class="badge" style="background:rgba(100,116,139,0.15);color:var(--text-muted);font-size:0.75rem;">○ TIDAK TERSEDIA</span>';
+  }
+  // Tampilkan tombol Hubungkan agar pengguna bisa refresh manual
+  const btnConnect = document.getElementById("btn-connect-telegram");
+  if (btnConnect) btnConnect.style.display = "inline-flex";
+  const btnDisconnect = document.getElementById("btn-disconnect-telegram");
+  if (btnDisconnect) btnDisconnect.style.display = "none";
+  const btnTest = document.getElementById("btn-test-telegram");
+  if (btnTest) btnTest.style.display = "none";
+}
+
+async function loadTelegramStatus(showToastOnManual = false) {
+  const refreshBtn = document.getElementById("btn-refresh-tg");
+  if (refreshBtn && showToastOnManual) {
+    refreshBtn.disabled = true;
+    refreshBtn.innerText = "⏳...";
+  }
+
+  let parseSuccess = false;
+
+  try {
+    const res = await fetch("/api/v1/integrations/telegram/status");
+
+    // === Sesi habis / tidak terautentikasi ===
+    if (res.status === 401 || res.status === 403) {
+      _renderTelegramError(false);
+      if (showToastOnManual) App.showToast("Sesi berakhir. Silakan login ulang.", "warning");
+      return;
+    }
+
+    // === Error server lain ===
+    if (!res.ok) {
+      _renderTelegramError(false);
+      if (showToastOnManual) App.showToast(`Gagal memuat status Telegram (HTTP ${res.status}).`, "error");
+      return;
+    }
+
+    let data;
+    try {
+      data = await res.json();
+    } catch (_) {
+      _renderTelegramError(false);
+      if (showToastOnManual) App.showToast("Respons server tidak valid.", "error");
+      return;
+    }
+
+    if (!data.success || !data.data) {
+      _renderTelegramDisconnected(false);
+      return;
+    }
+
+    parseSuccess = true;
+    const info = data.data;
+
+    // === Konfigurasi Bot Alert ===
+    const unconfAlert = document.getElementById("tg-unconfigured-alert");
+    if (unconfAlert) unconfAlert.style.display = info.is_bot_configured ? "none" : "block";
+
+    const statusBadge   = document.getElementById("tg-status-badge");
+    const infoStatus    = document.getElementById("tg-info-status");
+    const infoUser      = document.getElementById("tg-info-username");
+    const infoChat      = document.getElementById("tg-info-chatid");
+    const infoConnAt    = document.getElementById("tg-info-connected-at");
+    const btnConnect    = document.getElementById("btn-connect-telegram");
+    const btnDisconnect = document.getElementById("btn-disconnect-telegram");
+    const btnTest       = document.getElementById("btn-test-telegram");
+
+    if (info.is_connected) {
+      // === STATUS: TERHUBUNG ===
+      if (statusBadge)   statusBadge.innerHTML = '<span class="badge badge-success" style="font-size:0.75rem;">● TELEGRAM TERHUBUNG</span>';
+      if (infoStatus)    infoStatus.innerHTML  = '<span style="color:var(--success);font-weight:700;">Terhubung Aktif</span>';
+      if (infoUser)      infoUser.innerText     = info.telegram_username ? `@${info.telegram_username}` : (info.first_name || '(Terhubung)');
+      if (infoChat)      infoChat.innerText     = info.masked_chat_id || '-';
+      if (infoConnAt)    infoConnAt.innerText   = info.connected_at ? new Date(info.connected_at).toLocaleString('id-ID') : '-';
+      if (btnConnect)    btnConnect.style.display    = "none";
+      if (btnDisconnect) btnDisconnect.style.display = "inline-flex";
+      if (btnTest)       btnTest.style.display       = "inline-flex";
+    } else {
+      // === STATUS: BELUM TERHUBUNG ===
+      _renderTelegramDisconnected(info.is_bot_configured);
+    }
+
+    if (showToastOnManual) App.showToast("Status Telegram berhasil diperbarui.", "success");
+
+  } catch (err) {
+    // === Error Jaringan ===
+    console.error("[Telegram] Gagal memuat status:", err);
+    if (!parseSuccess) _renderTelegramError(true);
+    if (showToastOnManual) App.showToast("Gangguan jaringan saat memuat status Telegram.", "error");
+  } finally {
+    if (refreshBtn && showToastOnManual) {
+      refreshBtn.disabled = false;
+      refreshBtn.innerText = "🔄 Segarkan";
+    }
+  }
+}
+
+async function loadNotificationPreferences() {
+  try {
+    const res = await fetch("/api/v1/integrations/telegram/preferences");
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data.success || !data.data) return;
+    const p = data.data;
+
+    const setCheck = (id, val) => { const el = document.getElementById(id); if (el && !el.dataset.permDisabled) el.checked = !!val; };
+    setCheck("pref-telegram-enabled",    p.telegram_enabled);
+    setCheck("pref-notify-loans",        p.notify_loans);
+    setCheck("pref-notify-installments", p.notify_installments);
+    setCheck("pref-notify-cashier",      p.notify_cashier);
+    setCheck("pref-notify-hrd",          p.notify_hrd);
+    setCheck("pref-notify-system",       p.notify_system);
+  } catch (err) {
+    console.warn("[Telegram] Gagal memuat preferensi:", err);
+  }
+}
+
+async function saveNotificationPreferences() {
+  const btn = document.getElementById("btn-save-preferences");
+  btn.disabled = true;
+  btn.innerText = "Menyimpan...";
+
+  // Hanya kirim field yang tidak di-disable permission
+  const getVal = (id) => { const el = document.getElementById(id); return el ? el.checked : false; };
+  const payload = {
+    telegram_enabled:    getVal("pref-telegram-enabled"),
+    notify_loans:        getVal("pref-notify-loans"),
+    notify_installments: getVal("pref-notify-installments"),
+    notify_cashier:      getVal("pref-notify-cashier"),
+    notify_hrd:          getVal("pref-notify-hrd"),
+    notify_system:       getVal("pref-notify-system"),
+  };
+
+  try {
+    const res = await fetch("/api/v1/integrations/telegram/preferences", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    let data;
+    try { data = await res.json(); } catch (_) { data = {}; }
+    if (res.ok && data.success) {
+      App.showToast("Preferensi notifikasi berhasil disimpan!", "success");
+    } else {
+      App.showToast(data.detail || "Gagal menyimpan preferensi.", "error");
+    }
+  } catch (err) {
+    App.showToast("Terjadi kesalahan jaringan saat menyimpan preferensi.", "error");
+  } finally {
+    btn.disabled = false;
+    btn.innerText = "Simpan Preferensi";
+  }
+}
+
+function startTelegramPolling() {
+  stopTelegramPolling();
+  // Auto-stop setelah 5 menit agar tidak polling selamanya
+  tgPollTimeoutId = setTimeout(() => {
+    stopTelegramPolling();
+    const pollingStatus = document.getElementById("tg-modal-polling-status");
+    if (pollingStatus) pollingStatus.innerHTML = '<span style="color:#d97706;">⏰ Waktu tunggu habis. Tekan <strong>Cek Status Koneksi</strong> jika sudah selesai.</span>';
+  }, 5 * 60 * 1000);
+
+  tgPollInterval = setInterval(async () => {
+    try {
+      const res = await fetch("/api/v1/integrations/telegram/status");
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.success && data.data && data.data.is_connected) {
+        stopTelegramPolling();
+        closeTelegramModal();
+        App.showToast("🎉 Akun Telegram berhasil terhubung!", "success");
+        await loadTelegramStatus();
+      }
+    } catch (e) {
+      // Abaikan error pada background polling
+    }
+  }, 2500);
+}
+
+function stopTelegramPolling() {
+  if (tgPollInterval) { clearInterval(tgPollInterval); tgPollInterval = null; }
+  if (tgPollTimeoutId) { clearTimeout(tgPollTimeoutId); tgPollTimeoutId = null; }
+}
+
+async function handleConnectTelegram() {
+  const btn = document.getElementById("btn-connect-telegram");
+  btn.disabled = true;
+  btn.innerHTML = '<span>⏳</span><span>Membuat Tautan...</span>';
+
+  try {
+    const res = await fetch("/api/v1/integrations/telegram/link-token", { method: "POST" });
+    let data;
+    try { data = await res.json(); } catch (_) { data = {}; }
+
+    if (res.ok && data.success) {
+      currentDeepLink = data.data.deep_link;
+      document.getElementById("tg-modal-link-display").innerText = currentDeepLink;
+      document.getElementById("tg-modal-open-btn").href = currentDeepLink;
+      document.getElementById("telegram-link-modal").style.display = "flex";
+      startTelegramPolling();
+      // Otomatis buka link — bisa diblokir popup blocker browser
+      try { window.open(currentDeepLink, "_blank"); } catch (e) { /* fallback: pengguna klik manual */ }
+    } else {
+      App.showToast(data.detail || "Gagal membuat linking token Telegram.", "error");
+    }
+  } catch (err) {
+    App.showToast("Terjadi kesalahan jaringan.", "error");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<span>✈️</span><span>Hubungkan Telegram</span>';
+  }
+}
+
+function closeTelegramModal() {
+  stopTelegramPolling();
+  document.getElementById("telegram-link-modal").style.display = "none";
+}
+
+function copyTelegramLink() {
+  if (!currentDeepLink) return;
+  navigator.clipboard.writeText(currentDeepLink)
+    .then(() => App.showToast("Tautan Telegram berhasil disalin ke clipboard!", "success"))
+    .catch(() => App.showToast("Gagal menyalin tautan. Salin manual dari kotak di atas.", "warning"));
+}
+
+async function checkTelegramLinkComplete() {
+  stopTelegramPolling();
+  closeTelegramModal();
+  App.showToast("Memperbarui status koneksi...", "info");
+  await loadTelegramStatus(true);
+}
+
+async function handleDisconnectTelegram() {
+  if (!confirm("Apakah Anda yakin ingin memutuskan integrasi Telegram? Anda tidak akan lagi menerima notifikasi koperasi di akun Telegram ini.")) return;
+
+  const btn = document.getElementById("btn-disconnect-telegram");
+  btn.disabled = true;
+  btn.innerText = "Memutuskan...";
+
+  try {
+    const res = await fetch("/api/v1/integrations/telegram/unlink", { method: "POST" });
+    let data;
+    try { data = await res.json(); } catch (_) { data = {}; }
+    if (res.ok && data.success) {
+      App.showToast(data.message || "Koneksi Telegram berhasil diputuskan.", "success");
+      await loadTelegramStatus();
+    } else {
+      App.showToast(data.detail || "Gagal memutuskan koneksi.", "error");
+    }
+  } catch (err) {
+    App.showToast("Terjadi kesalahan jaringan.", "error");
+  } finally {
+    btn.disabled = false;
+    btn.innerText = "Putuskan Telegram";
+  }
+}
+
+async function handleSendTestNotification() {
+  const btn = document.getElementById("btn-test-telegram");
+  btn.disabled = true;
+  btn.innerText = "Mengirim Uji Coba...";
+
+  try {
+    const res = await fetch("/api/v1/integrations/telegram/test-notification", { method: "POST" });
+    let data;
+    try { data = await res.json(); } catch (_) { data = {}; }
+    if (res.ok && data.success) {
+      App.showToast(data.message || "✅ Pesan uji coba berhasil terkirim ke Telegram Anda!", "success");
+    } else {
+      App.showToast(data.detail || "Gagal mengirim notifikasi uji coba.", "error");
+    }
+  } catch (err) {
+    App.showToast("Terjadi kesalahan jaringan saat mengirim notifikasi uji coba.", "error");
+  } finally {
+    btn.disabled = false;
+    btn.innerText = "🔔 Kirim Notifikasi Uji Coba";
+  }
+}
+
+// Inisialisasi saat halaman profil dimuat
+document.addEventListener("DOMContentLoaded", () => {
+  loadTelegramStatus();
+  loadNotificationPreferences();
+});
+</script>
+{% endblock %}

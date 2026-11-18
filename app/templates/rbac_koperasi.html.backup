@@ -1,0 +1,477 @@
+{% extends "layouts/dashboard_layout.html" %}
+
+{% block title %}RBAC Admin Koperasi - KSP AHNRFZI{% endblock %}
+
+{% block page_title %}RBAC Admin Koperasi{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/components.css">
+<style>
+  /* RBAC Koperasi Page Styles */
+  .rbac-card {
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    background: var(--card-background);
+    transition: box-shadow 0.2s ease;
+  }
+  
+  .rbac-card:hover {
+    box-shadow: var(--shadow-sm);
+  }
+  
+  .rbac-card.active {
+    border-color: var(--primary-600);
+    box-shadow: 0 0 0 3px var(--primary-100);
+  }
+  
+  .role-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    background: var(--chip-background);
+    border: 1px solid var(--chip-border);
+    border-radius: 20px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin: 0.25rem;
+  }
+  
+  .role-chip.selected {
+    background: var(--primary-100);
+    border-color: var(--primary-600);
+    color: var(--primary-800);
+  }
+  
+  .permission-badge {
+    padding: 0.25rem 0.5rem;
+    background: var(--bg-subtle);
+    border-radius: 4px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin: 0.1rem;
+    display: inline-block;
+  }
+  
+  .status-active {
+    background: var(--success-light);
+    color: var(--success-800);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+  
+  .status-inactive {
+    background: var(--error-light);
+    color: var(--error-800);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+  
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0.5rem;
+  }
+  
+  .data-table th,
+  .data-table td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  
+  .data-table th {
+    background: var(--bg-subtle);
+    font-weight: 600;
+    color: var(--text-900);
+  }
+  
+  .data-table tr:hover {
+    background: var(--bg-subtle);
+  }
+  
+  .action-btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin: 0.2rem;
+  }
+  
+  .action-btn.view {
+    background: var(--primary-100);
+    color: var(--primary-800);
+  }
+  
+  .action-btn.edit {
+    background: var(--warning-light);
+    color: var(--warning-800);
+  }
+  
+  .action-btn.delete {
+    background: var(--error-light);
+    color: var(--error-800);
+  }
+  
+  .action-btn:hover {
+    opacity: 0.9;
+  }
+  
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+  }
+  
+  .modal-overlay.active {
+    opacity: 1;
+    visibility: visible;
+  }
+  
+  .modal {
+    background: var(--card-background);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    padding: 2rem;
+    width: 90%;
+    max-width: 600px;
+    transform: scale(0.9) translateY(20px);
+    transition: transform 0.3s ease;
+  }
+  
+  .modal.active {
+    transform: scale(1) translateY(0);
+  }
+  
+  .toast {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--card-background);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 1rem 1.5rem;
+    z-index: 900;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+  }
+  
+  .toast.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="p-4 md:p-6">
+  <!-- Header -->
+  <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-primary-900 mb-1">RBAC Admin Koperasi</h1>
+      <p class="text-text-muted mb-2">Pengelolaan Hak Akses dan Role Koperasi AHNRFZI</p>
+      <p class="text-xs text-text-secondary">Hanya Admin Koperasi yang dapat mengelola akun dan role di dalam koperasi ini.</p>
+    </div>
+    
+    <div class="flex items-center gap-2 md:mb-0">
+      <span class="text-sm text-text-secondary" id="rbac-last-updated">Sedang memuat...</span>
+    </div>
+  </div>
+  
+  <!-- Users Section -->
+  <div class="rbac-card mb-4" id="users-card">
+    <div class="flex items-start">
+      <div class="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0" id="users-icon">
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14a4 4 0 01-4 4v7h4v-7a4 4 0 014-4z"/></svg>
+      </div>
+      <div class="ml-3">
+        <p class="text-sm font-medium" id="users-count">Memuat daftar pengguna...</p>
+        <p class="text-caption text-text-secondary">Total pengguna koperasi</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="ai-config-card mb-4" id="users-table-card" style="display: none;">
+    <div class="overflow-x-auto">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>Username</th>
+            <th>Nama Lengkap</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="users-table-body">
+          <!-- Akan diisi oleh JavaScript -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+  
+  <!-- Role Section -->
+  <div class="rbac-card mb-4" id="roles-card">
+    <div class="flex items-start">
+      <div class="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0" id="roles-icon">
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v6h4v-6M5 15l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2-2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+      </div>
+      <div class="ml-3">
+        <p class="text-sm font-medium" id="roles-count">Memuat daftar role...</p>
+        <p class="text-caption text-text-secondary">Total role koperasi</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="ai-config-card mb-4" id="roles-table-card" style="display: none;">
+    <div class="overflow-x-auto">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>Code</th>
+            <th>Nama Role</th>
+            <th>Permission</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="roles-table-body">
+          <!-- Akan diisi oleh JavaScript -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+  
+  <!-- Action Buttons -->
+  <div class="flex gap-3 mt-6" id="action-buttons">
+    <button id="btn-refresh" class="btn btn-secondary">REFRESH</button>
+  </div>
+  
+  <!-- Confirmation Modal -->
+  <div class="modal-overlay" id="confirm-modal" role="dialog" aria-modal="true">
+    <div class="modal">
+      <h3 class="font-bold text-primary-900 mb-3">Konfirmasi</h3>
+      <p id="modal-message">Apakah Anda yakin ingin melakukan perubahan ini?</p>
+      <div class="flex gap-3 mt-4">
+        <button id="cancel-btn" class="btn btn-outline">BATAL</button>
+        <button id="confirm-btn" class="btn btn-primary">YA, LANJUTKAN</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Toast Container -->
+  <div class="toast" id="toast" role="alert" aria-live="polite">
+    <span id="toast-message"></span>
+  </div>
+</div>
+
+{% block extra_js %}
+<script>
+  // RBAC Koperasi Page JavaScript
+  const RBAC = window.RBAC || {};
+  
+  // Initial state
+  let currentUserData = null;
+  let currentRoleData = null;
+  let editTimeout = null;
+  
+  // DOM Elements
+  const usersCount = document.getElementById('users-count');
+  const usersTableBody = document.getElementById('users-table-body');
+  const rolesCount = document.getElementById('roles-count');
+  const rolesTableBody = document.getElementById('roles-table-body');
+  const toast = document.getElementById('toast');
+  const toastMessage = document.getElementById('toast-message');
+  const confirmModal = document.getElementById('confirm-modal');
+  const cancelBtn = document.getElementById('cancel-btn');
+  const confirmBtn = document.getElementById('confirm-btn');
+  const refreshBtn = document.getElementById('btn-refresh');
+  
+  // Initialize when page loads
+  document.addEventListener('DOMContentLoaded', function() {
+    loadUsers();
+    loadRoles();
+    setupEventListeners();
+  });
+  
+  // Load users from API
+  async function loadUsers() {
+    try {
+      const resp = await fetch('/api/v1/users', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+        }
+      });
+      
+      if (resp.status === 401) {
+        showToast('Session expired, silakan login kembali', 'error');
+        return;
+      }
+      
+      if (!resp.ok) throw new Error('Gagal memuat pengguna');
+      
+      currentUserData = await resp.json();
+      const users = currentUserData;
+      
+      // Update count
+      usersCount.textContent = `Total pengguna: ${users.length}`;
+      
+      // Build table
+      let html = '';
+      users.forEach((user, index) => {
+        const roleCodes = user.roles.map(r => r.code).join(', ') || '-';
+        const isActive = user.is_active ? 'Aktif' : 'Nonaktif';
+        const statusClass = user.is_active ? 'status-active' : 'status-inactive';
+        
+        html += `
+          <tr>
+            <td>${index + 1}</td>
+            <td>${user.username}</td>
+            <td>${user.full_name || '-'}</td>
+            <td>${roleCodes}</td>
+            <td><span class="${statusClass}">${isActive}</span></td>
+            <td>
+              <button class="action-btn view" onclick="viewUserDetails(${user.id})">Lihat</button>
+              <button class="action-btn edit" onclick="editUserRole(${user.id})">Ubah Role</button>
+            </td>
+          </tr>
+        `;
+      });
+      
+      usersTableBody.innerHTML = html || '<tr><td colspan="6" class="text-center text-text-secondary">Tidak ada pengguna ditemukan</td></tr>';
+      document.getElementById('users-table-card').style.display = 'block';
+      document.getElementById('users-card').classList.add('active');
+      
+    } catch (error) {
+      console.error('Gagal memuat pengguna:', error);
+      showToast('Gagal memuat daftar pengguna', 'error');
+    }
+  }
+  
+  // Load roles from API
+  async function loadRoles() {
+    try {
+      const resp = await fetch('/api/v1/roles', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+        }
+      });
+      
+      if (resp.status === 401) {
+        showToast('Session expired, silakan login kembali', 'error');
+        return;
+      }
+      
+      if (!resp.ok) throw new Error('Gagal memuat role');
+      
+      currentRoleData = await resp.json();
+      const roles = currentRoleData;
+      
+      // Update count
+      rolesCount.textContent = `Total role: ${roles.length}`;
+      
+      // Build table
+      let html = '';
+      roles.forEach((role, index) => {
+        const permCodes = role.permission_codes.map(p => p).join(', ') || '-';
+        const isActive = role.is_system_role ? 'System' : 'Custom';
+        const statusClass = role.is_system_role ? 'status-active' : 'status-inactive';
+        
+        html += `
+          <tr>
+            <td>${index + 1}</td>
+            <td>${role.code}</td>
+            <td>${role.name || '-'}</td>
+            <td>${permCodes || 'Tidak ada'}</td>
+            <td><span class="${statusClass}">${isActive}</span></td>
+          </tr>
+        `;
+      });
+      
+      rolesTableBody.innerHTML = html || '<tr><td colspan="5" class="text-center text-text-secondary">Tidak ada role ditemukan</td></tr>';
+      document.getElementById('roles-table-card').style.display = 'block';
+      document.getElementById('roles-card').classList.add('active');
+      
+    } catch (error) {
+      console.error('Gagal memuat role:', error);
+      showToast('Gagal memuat daftar role', 'error');
+    }
+  }
+  
+  // View user details
+  function viewUserDetails(userId) {
+    showToast(`Melihat detail pengguna ID: ${userId}`, 'info');
+  }
+  
+  // Edit user role
+  function editUserRole(userId) {
+    showToast(`Mengubah role pengguna ID: ${userId}`, 'info');
+    // Buka modal atau halaman edit
+    confirmModal.classList.add('active');
+    confirmBtn.onclick = function() {
+      // Arahkan ke halaman edit role atau lakukan update
+      showToast('Fungsi edit role akan segera tersedia', 'info');
+      confirmModal.classList.remove('active');
+    };
+  }
+  
+  // Show toast
+  function showToast(message, type = 'info') {
+    toastMessage.textContent = message;
+    toast.classList.add('active');
+    
+    setTimeout(() => {
+      toast.classList.remove('active');
+    }, 3000);
+  }
+  
+  // Setup event listeners
+  function setupEventListeners() {
+    // Refresh button
+    refreshBtn.addEventListener('click', function() {
+      loadUsers();
+      loadRoles();
+      showToast('Data diperbarui', 'success');
+    });
+    
+    // Confirm modal cancel
+    cancelBtn.addEventListener('click', function() {
+      confirmModal.classList.remove('active');
+    });
+    
+    // Close modal on outside click
+    confirmModal.addEventListener('click', function(e) {
+      if (e.target === confirmModal) {
+        confirmModal.classList.remove('active');
+      }
+    });
+    
+    // Handle window resize
+    window.addEventListener('resize', function() {
+      if (window.innerWidth < 640) {
+        // Mobile layout adjustments
+      }
+    });
+  }
+</script>
+{% endblock %}

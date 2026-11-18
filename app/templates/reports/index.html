@@ -1,0 +1,63 @@
+{% extends "layouts/dashboard_layout.html" %}
+{% block title %}Laporan Manajerial - KSP AHNRFZI{% endblock %}
+{% block page_title %}Laporan Manajerial Koperasi{% endblock %}
+{% block extra_css %}
+<style>
+@media print {
+  .no-print, .topbar, .sidebar, .ai-assistant-btn { display: none !important; }
+  .main-content { margin: 0 !important; }
+  .print-header { display: block !important; }
+  .card { box-shadow: none; border: 1px solid #999; break-inside: avoid; }
+}
+.print-header { display: none; text-align: center; margin-bottom: 1rem; }
+.tabs { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.tab-btn.active { background: var(--primary-600); color: #fff; }
+.filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: .6rem; margin-bottom: 1rem; }
+.state-box { padding: 2rem; text-align: center; color: var(--text-muted); }
+.pager { display: flex; gap: .5rem; align-items: center; justify-content: flex-end; margin-top: .8rem; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="print-header">
+  <h2>KOPERASI SIMPAN PINJAM AHNRFZI</h2>
+  <p id="print-title">Laporan Manajerial</p>
+  <p id="print-period" style="font-size:.85rem;"></p>
+  <p style="font-size:.8rem;">Dicetak: <span id="print-date"></span> oleh {{ current_user.full_name if current_user else '' }} ({{ active_role }})</p>
+</div>
+
+<div class="card no-print" style="margin-bottom:1rem;">
+  <div class="tabs" role="tablist">
+    <button class="btn btn-secondary tab-btn active" data-report="members" onclick="Reports.switchTab('members')">👥 Anggota</button>
+    <button class="btn btn-secondary tab-btn" data-report="savings" onclick="Reports.switchTab('savings')">💰 Simpanan</button>
+    <button class="btn btn-secondary tab-btn" data-report="loans" onclick="Reports.switchTab('loans')">🏦 Pinjaman</button>
+    <button class="btn btn-secondary tab-btn" data-report="installments" onclick="Reports.switchTab('installments')">📅 Angsuran</button>
+    <button class="btn btn-secondary tab-btn" data-report="cash" onclick="Reports.switchTab('cash')">🧾 Kas</button>
+    <button class="btn btn-secondary tab-btn" data-report="overdue" onclick="Reports.switchTab('overdue')">⚠️ Tunggakan</button>
+  </div>
+  <div class="filter-grid">
+    <input id="f-search" class="form-control" placeholder="Cari nama / nomor…">
+    <input id="f-start" type="date" class="form-control" title="Tanggal mulai">
+    <input id="f-end" type="date" class="form-control" title="Tanggal akhir">
+    <select id="f-status" class="form-control"><option value="">Semua Status</option></select>
+    <select id="f-extra" class="form-control" style="display:none;"></select>
+    <select id="f-limit" class="form-control" style="max-width:110px;"><option value="25">25 / hal</option><option value="50">50 / hal</option><option value="100">100 / hal</option></select>
+  </div>
+  <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+    <button class="btn btn-primary" onclick="Reports.load(1)">🔍 Tampilkan</button>
+    <button class="btn btn-secondary" onclick="Reports.reset()">↺ Reset</button>
+    <button class="btn btn-secondary" onclick="Reports.export('excel')">⬇️ Excel</button>
+    <button class="btn btn-secondary" onclick="Reports.export('pdf')">⬇️ PDF</button>
+    <button class="btn btn-secondary" onclick="Reports.print()">🖨️ Cetak</button>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><div class="card-title" id="report-title">📊 Laporan Keanggotaan</div><span class="badge badge-primary" id="report-count">0 data</span></div>
+  <div id="report-summary" style="padding:0 1rem .5rem;font-size:.85rem;color:var(--text-secondary);"></div>
+  <div class="table-container" style="max-height:560px;overflow:auto;"><table class="table"><thead id="report-head"></thead><tbody id="report-body"><tr><td class="state-box">Memuat…</td></tr></tbody></table></div>
+  <div class="pager no-print"><button class="btn btn-secondary" onclick="Reports.prev()">‹ Prev</button><span id="page-info">Hal 1</span><button class="btn btn-secondary" onclick="Reports.next()">Next ›</button></div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="/static/js/reports.js"></script>
+{% endblock %}

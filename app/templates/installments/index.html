@@ -1,0 +1,1098 @@
+{% extends "layouts/dashboard_layout.html" %}
+
+{% block page_title %}Manajemen Jadwal Angsuran & Pembayaran Kasir{% endblock %}
+
+{% block content %}
+<!-- ================================================================
+     CUSTOM STYLES FOR INSTALLMENT MODULE
+================================================================ -->
+<style>
+  /* KPI Grid */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 1.75rem;
+  }
+
+  .kpi-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 1.25rem 1.5rem;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    backdrop-filter: blur(12px);
+  }
+
+  .kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  }
+
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: var(--card-accent, var(--primary-color));
+  }
+
+  .kpi-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.75px;
+    color: var(--text-muted);
+    margin-bottom: 0.4rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .kpi-value {
+    font-size: 1.55rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -0.5px;
+    font-family: var(--font-heading, system-ui);
+  }
+
+  .kpi-sub {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 0.35rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  /* Status Badges */
+  .badge-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.65rem;
+    border-radius: 9999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .badge-belum-jatuh-tempo { background: rgba(148, 163, 184, 0.15); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.3); }
+  .badge-jatuh-tempo { background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); }
+  .badge-terlambat { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); }
+  .badge-dibayar { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+  .badge-lunas { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); }
+
+  /* Navigation Tabs */
+  .tabs-nav {
+    display: flex;
+    gap: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 1.5rem;
+    overflow-x: auto;
+  }
+
+  .tab-btn {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+  }
+
+  .tab-btn:hover { color: var(--text-primary); }
+  .tab-btn.active { color: var(--primary-color); border-bottom-color: var(--primary-color); }
+
+  /* Table styling */
+  .data-table-container {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .table-responsive { overflow-x: auto; }
+
+  .inst-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.86rem;
+    text-align: left;
+  }
+
+  .inst-table th {
+    background: rgba(255, 255, 255, 0.02);
+    color: var(--text-muted);
+    font-weight: 600;
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+  }
+
+  .inst-table td {
+    padding: 0.9rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+    vertical-align: middle;
+  }
+
+  .inst-table tr:last-child td { border-bottom: none; }
+  .inst-table tr:hover td { background: rgba(255, 255, 255, 0.015); }
+
+  /* Action Buttons */
+  .btn-sm-action {
+    padding: 0.35rem 0.65rem;
+    font-size: 0.76rem;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+  .btn-action-pay { background: rgba(16, 185, 129, 0.15); color: #34d399; border-color: rgba(16, 185, 129, 0.3); }
+  .btn-action-pay:hover { background: #10b981; color: #fff; }
+  .btn-action-detail { background: rgba(148, 163, 184, 0.15); color: #cbd5e1; border-color: rgba(148, 163, 184, 0.3); }
+  .btn-action-detail:hover { background: #475569; color: #fff; }
+  .btn-action-receipt { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border-color: rgba(59, 130, 246, 0.3); }
+  .btn-action-receipt:hover { background: #3b82f6; color: #fff; }
+
+  /* Modal styling */
+  .modal-backdrop {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(6px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 1rem;
+  }
+  .modal-backdrop.show { display: flex; }
+  
+  .modal-dialog {
+    background: #0f172a;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    width: 100%;
+    max-width: 650px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  }
+  .modal-dialog.modal-receipt { max-width: 580px; }
+
+  .modal-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .modal-header h3 { margin: 0; font-size: 1.15rem; font-weight: 700; color: #f8fafc; }
+  .modal-body { padding: 1.5rem; overflow-y: auto; }
+  .modal-footer {
+    padding: 1.25rem 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+  }
+
+  .form-group { margin-bottom: 1.1rem; }
+  .form-label { display: block; font-size: 0.82rem; font-weight: 600; color: #94a3b8; margin-bottom: 0.4rem; }
+  .form-control {
+    width: 100%;
+    background: rgba(30, 41, 59, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    padding: 0.65rem 0.9rem;
+    color: #f8fafc;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s ease;
+  }
+  .form-control:focus { border-color: var(--primary-color); }
+
+  /* Official Thermal Slip Style */
+  .receipt-slip {
+    background: #ffffff;
+    color: #0f172a;
+    padding: 1.75rem;
+    border-radius: 14px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.85rem;
+    line-height: 1.45;
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05);
+  }
+  .receipt-header {
+    text-align: center;
+    border-bottom: 2px dashed #94a3b8;
+    padding-bottom: 0.75rem;
+    margin-bottom: 1rem;
+  }
+  .receipt-footer {
+    text-align: center;
+    border-top: 2px dashed #94a3b8;
+    padding-top: 0.75rem;
+    margin-top: 1rem;
+    font-size: 0.75rem;
+    color: #64748b;
+  }
+</style>
+
+<!-- ================================================================
+     PAGE HEADER & ACTIONS
+================================================================ -->
+<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.75rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h1 style="font-size: 1.75rem; font-weight: 800; margin: 0 0 0.4rem 0; color: var(--text-primary);">
+      Manajemen Jadwal Angsuran & Kasir
+    </h1>
+    <p style="font-size: 0.88rem; color: var(--text-muted); margin: 0;">
+      Jadwal Amortisasi 1..N • Pelunasan Full & Partial • Kas Masuk Atomik & Kuitansi Resmi
+    </p>
+  </div>
+  <div style="display: flex; gap: 0.75rem;">
+    <button onclick="loadInstallments(); loadPaymentsHistory();" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.65rem 1.1rem; border-radius: 12px; font-weight: 600; font-size: 0.88rem;">
+      <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+      <span>Refresh Data</span>
+    </button>
+  </div>
+</div>
+
+<!-- ================================================================
+     KPI METRICS CARDS
+================================================================ -->
+<div class="kpi-grid">
+  <!-- Card 1: Tagihan Bulan Berjalan -->
+  <div class="kpi-card" style="--card-accent: #38bdf8;">
+    <div class="kpi-label">
+      <span>Tagihan Bulan Ini</span>
+      <span style="color: #38bdf8;">●</span>
+    </div>
+    <div class="kpi-value" id="kpi-due-month">
+      Rp {{ "{:,.0f}".format(stats.due_this_month).replace(",", ".") }}
+    </div>
+    <div class="kpi-sub">
+      <span>Jatuh tempo bulan berjalan</span>
+    </div>
+  </div>
+
+  <!-- Card 2: Angsuran Terlambat (Overdue) -->
+  <div class="kpi-card" style="--card-accent: #ef4444;">
+    <div class="kpi-label">
+      <span>Angsuran Terlambat</span>
+      <span style="color: #ef4444;">●</span>
+    </div>
+    <div class="kpi-value" style="color: #ef4444;" id="kpi-overdue">
+      {{ stats.overdue_count }} <span style="font-size: 1rem; font-weight: 500; color: #fca5a5;">(Rp {{ "{:,.0f}".format(stats.overdue_amount).replace(",", ".") }})</span>
+    </div>
+    <div class="kpi-sub">
+      <span>Melewati tanggal jatuh tempo</span>
+    </div>
+  </div>
+
+  <!-- Card 3: Total Pembayaran Kasir Masuk -->
+  <div class="kpi-card" style="--card-accent: #10b981;">
+    <div class="kpi-label">
+      <span>Total Uang Kas Masuk</span>
+      <span style="color: #10b981;">●</span>
+    </div>
+    <div class="kpi-value" id="kpi-total-payments">
+      Rp {{ "{:,.0f}".format(stats.total_payments_received).replace(",", ".") }}
+    </div>
+    <div class="kpi-sub">
+      <span>Akumulasi setoran angsuran</span>
+    </div>
+  </div>
+
+  <!-- Card 4: Sisa Piutang Pinjaman -->
+  <div class="kpi-card" style="--card-accent: #a855f7;">
+    <div class="kpi-label">
+      <span>Sisa Pokok Piutang</span>
+      <span style="color: #a855f7;">●</span>
+    </div>
+    <div class="kpi-value" id="kpi-portfolio-rem">
+      Rp {{ "{:,.0f}".format(stats.total_portfolio_remaining).replace(",", ".") }}
+    </div>
+    <div class="kpi-sub">
+      <span>Portofolio kredit belum lunas</span>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     TABS NAVIGATION
+================================================================ -->
+<div class="tabs-nav">
+  <button onclick="switchTab('schedules')" id="tab-btn-schedules" class="tab-btn active">
+    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+    <span>Jadwal & Tagihan Angsuran</span>
+  </button>
+  <button onclick="switchTab('history')" id="tab-btn-history" class="tab-btn">
+    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+    <span>Riwayat Pembayaran Kasir</span>
+  </button>
+  {% if current_user.member %}
+  <button onclick="switchTab('myinstallments')" id="tab-btn-myinstallments" class="tab-btn">
+    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+    <span>Tagihan & Cicilan Saya</span>
+  </button>
+  {% endif %}
+</div>
+
+<!-- ================================================================
+     TAB 1: JADWAL & TAGIHAN ANGSURAN
+================================================================ -->
+<div id="tab-schedules" class="tab-pane">
+  <!-- Search & Filter Bar -->
+  <div style="display: flex; gap: 1rem; margin-bottom: 1.25rem; flex-wrap: wrap; align-items: center;">
+    <div style="flex: 1; min-width: 260px;">
+      <input type="text" id="filter-search" class="form-control" placeholder="Cari No. Pinjaman / Nama Anggota..." onkeyup="debounceSearch()">
+    </div>
+    <div style="width: 220px;">
+      <select id="filter-status" class="form-control" onchange="loadInstallments()">
+        <option value="">Semua Status Tagihan</option>
+        <option value="BELUM_JATUH_TEMPO">BELUM JATUH TEMPO</option>
+        <option value="JATUH_TEMPO">JATUH TEMPO HARI INI</option>
+        <option value="TERLAMBAT">TERLAMBAT (OVERDUE)</option>
+        <option value="DIBAYAR">DIBAYAR SEBAGIAN</option>
+        <option value="LUNAS">LUNAS</option>
+      </select>
+    </div>
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <input type="checkbox" id="filter-overdue-only" onchange="loadInstallments()" style="width: 16px; height: 16px; accent-color: #ef4444;">
+      <label for="filter-overdue-only" style="font-size: 0.82rem; color: #fca5a5; font-weight: 600; cursor: pointer;">
+        Hanya Terlambat
+      </label>
+    </div>
+  </div>
+
+  <!-- Data Table -->
+  <div class="data-table-container">
+    <div class="table-responsive">
+      <table class="inst-table">
+        <thead>
+          <tr>
+            <th>Angsuran #</th>
+            <th>No. Pinjaman</th>
+            <th>Anggota</th>
+            <th>Jatuh Tempo</th>
+            <th>Pokok</th>
+            <th>Bunga</th>
+            <th>Total Tagihan</th>
+            <th>Terbayar</th>
+            <th>Sisa Tagihan</th>
+            <th>Status</th>
+            <th style="text-align: right;">Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="installment-table-body">
+          <tr>
+            <td colspan="11" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+              Memuat data jadwal angsuran...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     TAB 2: RIWAYAT PEMBAYARAN KASIR
+================================================================ -->
+<div id="tab-history" class="tab-pane" style="display: none;">
+  <div class="data-table-container">
+    <div class="table-responsive">
+      <table class="inst-table">
+        <thead>
+          <tr>
+            <th>No. Pembayaran</th>
+            <th>No. Kuitansi</th>
+            <th>Tgl Bayar</th>
+            <th>No. Pinjaman</th>
+            <th>Anggota</th>
+            <th>Nominal Bayar</th>
+            <th>Alokasi Pokok</th>
+            <th>Alokasi Bunga</th>
+            <th>Alokasi Denda</th>
+            <th>Kasir</th>
+            <th style="text-align: right;">Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="payment-history-body">
+          <tr>
+            <td colspan="11" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+              Memuat riwayat transaksi kasir...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     TAB 3: TAGIHAN SAYA (PORTAL MANDIRI ANGGOTA)
+================================================================ -->
+{% if current_user.member %}
+<div id="tab-myinstallments" class="tab-pane" style="display: none;">
+  {% if member_summary and member_summary.total_active_loans > 0 %}
+  <div class="kpi-card" style="margin-bottom: 1.5rem; background: linear-gradient(135deg, rgba(56, 189, 248, 0.1) 0%, rgba(15, 23, 42, 0.5) 100%); border-color: rgba(56, 189, 248, 0.3);">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+      <div>
+        <div style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase;">Jatuh Tempo Terdekat</div>
+        <div style="font-size: 1.3rem; font-weight: 800; color: #38bdf8;">
+          {{ member_summary.next_due_date or '-' }}
+        </div>
+        <div style="font-size: 0.8rem; color: #cbd5e1; margin-top: 0.2rem;">
+          Nominal: <strong>Rp {{ "{:,.0f}".format(member_summary.next_due_amount or 0).replace(",", ".") }}</strong>
+        </div>
+      </div>
+      <div>
+        <div style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase;">Tagihan Bulan Ini</div>
+        <div style="font-size: 1.3rem; font-weight: 800; color: #f59e0b;">
+          Rp {{ "{:,.0f}".format(member_summary.total_due_this_month or 0).replace(",", ".") }}
+        </div>
+        <div style="font-size: 0.8rem; color: #cbd5e1; margin-top: 0.2rem;">
+          {{ member_summary.overdue_installments_count }} tagihan lewat tempo
+        </div>
+      </div>
+      <div>
+        <div style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase;">Sisa Pokok Hutang</div>
+        <div style="font-size: 1.3rem; font-weight: 800; color: #a78bfa;">
+          Rp {{ "{:,.0f}".format(member_summary.total_outstanding_principal or 0).replace(",", ".") }}
+        </div>
+        <div style="font-size: 0.8rem; color: #cbd5e1; margin-top: 0.2rem;">
+          Dari {{ member_summary.total_active_loans }} pinjaman aktif
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- My Schedules Table -->
+  <div class="data-table-container">
+    <div style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--border-color); font-weight: 700; color: #f8fafc;">
+      Jadwal Cicilan Pinjaman Saya
+    </div>
+    <div class="table-responsive">
+      <table class="inst-table">
+        <thead>
+          <tr>
+            <th>Cicilan #</th>
+            <th>No. Pinjaman</th>
+            <th>Jatuh Tempo</th>
+            <th>Pokok</th>
+            <th>Bunga</th>
+            <th>Total Tagihan</th>
+            <th>Terbayar</th>
+            <th>Sisa Tagihan</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="my-installments-body">
+          <tr>
+            <td colspan="9" style="text-align: center; padding: 2rem; color: #64748b;">
+              Memuat data cicilan Anda...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- ================================================================
+     MODALS
+================================================================ -->
+
+<!-- 1. Modal Bayar Angsuran (Kasir) -->
+<div id="modal-pay" class="modal-backdrop">
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <h3 style="color: #10b981;">Loket Pembayaran Angsuran Pinjaman</h3>
+      <button onclick="closeModal('modal-pay')" style="background: none; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer;">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Target Summary Box -->
+      <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 12px; padding: 1.15rem; margin-bottom: 1.25rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+          <div>
+            <strong id="pay-loan-no" style="color: #38bdf8; font-size: 1.05rem;">-</strong>
+            <span style="color: #94a3b8; font-size: 0.82rem; margin-left: 0.4rem;" id="pay-inst-title">Angsuran #-</span>
+          </div>
+          <span id="pay-status-badge" class="badge-status badge-belum-jatuh-tempo">STATUS</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; font-size: 0.85rem; color: #cbd5e1;">
+          <div>Peminjam: <strong id="pay-member-name" style="color: #f8fafc;">-</strong></div>
+          <div>Jatuh Tempo: <strong id="pay-due-date" style="color: #f8fafc;">-</strong></div>
+          <div>Pokok: <span id="pay-prin-due">-</span></div>
+          <div>Bunga: <span id="pay-int-due">-</span></div>
+          <div>Denda Terlambat: <span id="pay-pen-due" style="color: #ef4444;">Rp 0</span></div>
+          <div>Total Tagihan: <strong id="pay-total-due" style="color: #38bdf8;">-</strong></div>
+        </div>
+        <div style="margin-top: 0.65rem; padding-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-weight: 600; color: #e2e8f0; font-size: 0.88rem;">Sisa Tagihan Belum Lunas:</span>
+          <strong id="pay-rem-due" style="color: #34d399; font-size: 1.25rem;">Rp 0</strong>
+        </div>
+      </div>
+
+      <!-- Quick Amount Options -->
+      <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+        <button type="button" onclick="setPayAmountFull()" class="btn btn-secondary" style="flex: 1; padding: 0.5rem; font-size: 0.8rem; font-weight: 600;">
+          Bayar Lunas Sisa Tagihan
+        </button>
+        <button type="button" onclick="setPayAmountCustom()" class="btn btn-secondary" style="flex: 1; padding: 0.5rem; font-size: 0.8rem; font-weight: 600;">
+          Bayar Sebagian (Partial)
+        </button>
+      </div>
+
+      <form id="form-pay" onsubmit="submitInstallmentPayment(event)">
+        <div class="form-group">
+          <label class="form-label">Nominal Uang Masuk / Pembayaran (Rp) *</label>
+          <input type="number" id="pay-amount-input" class="form-control" required min="1000" step="500" oninput="calculateAllocationPreview()">
+          <div id="pay-amount-helper" style="font-size: 0.75rem; color: #94a3b8; margin-top: 0.25rem;"></div>
+        </div>
+
+        <!-- Realtime Allocation Preview -->
+        <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 0.85rem; margin-bottom: 1rem; font-size: 0.82rem;">
+          <div style="font-weight: 700; color: #94a3b8; margin-bottom: 0.35rem; text-transform: uppercase;">Alokasi Pembayaran:</div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.2rem; color: #cbd5e1;">
+            <span>1. Denda Keterlambatan:</span>
+            <strong id="alloc-pen" style="color: #ef4444;">Rp 0</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.2rem; color: #cbd5e1;">
+            <span>2. Bunga Pinjaman:</span>
+            <strong id="alloc-int" style="color: #f59e0b;">Rp 0</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.2rem; color: #cbd5e1;">
+            <span>3. Pokok Pinjaman:</span>
+            <strong id="alloc-prin" style="color: #38bdf8;">Rp 0</strong>
+          </div>
+          <div style="border-top: 1px dashed rgba(255,255,255,0.08); padding-top: 0.35rem; margin-top: 0.35rem; display: flex; justify-content: space-between; color: #e2e8f0;">
+            <span>Sisa Tagihan Setelah Bayar:</span>
+            <strong id="alloc-rem" style="color: #34d399;">Rp 0</strong>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Metode Pembayaran *</label>
+          <select id="pay-method" class="form-control">
+            <option value="CASHIER">Tunai di Loket Kasir (CASHIER)</option>
+            <option value="BANK_TRANSFER">Transfer Bank Koperasi</option>
+            <option value="HRD_PAYROLL">Potong Gaji (Payroll HRD)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Catatan Kasir (Opsional)</label>
+          <input type="text" id="pay-notes" class="form-control" placeholder="Nomor kuitansi manual / keterangan">
+        </div>
+
+        <div class="modal-footer" style="padding-left: 0; padding-right: 0; margin-top: 1rem;">
+          <button type="button" onclick="closeModal('modal-pay')" class="btn btn-secondary">Batal</button>
+          <button type="submit" id="btn-submit-pay" class="btn btn-primary" style="background: #10b981;">
+            Konfirmasi Pembayaran Kas
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- 2. Modal Struk Kuitansi Resmi Pembayaran Kasir -->
+<div id="modal-receipt" class="modal-backdrop">
+  <div class="modal-dialog modal-receipt">
+    <div class="modal-header">
+      <h3>Bukti Pembayaran Angsuran</h3>
+      <button onclick="closeModal('modal-receipt')" style="background: none; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer;">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="receipt-print-area" class="receipt-slip">
+        <div class="receipt-header">
+          <div style="font-weight: 800; font-size: 1.1rem; letter-spacing: 0.5px;" id="rcp-coop-name">KOPERASI SIMPAN PINJAM AHNRFZI</div>
+          <div style="font-size: 0.72rem; color: #64748b;" id="rcp-coop-addr">Gedung Pusat Koperasi Simpan Pinjam AHNRFZI</div>
+          <div style="font-size: 0.72rem; color: #64748b;" id="rcp-coop-phone">Telp: (021) 7890-1234</div>
+          <div style="margin-top: 0.5rem; font-weight: 700; font-size: 0.95rem; text-decoration: underline;">
+            KUITANSI PEMBAYARAN ANGSURAN
+          </div>
+        </div>
+
+        <div style="margin-bottom: 0.75rem;">
+          <div style="display: flex; justify-content: space-between;">
+            <span>No. Kuitansi :</span>
+            <strong id="rcp-no">-</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span>No. Transaksi:</span>
+            <span id="rcp-trx-no">-</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span>Tanggal     :</span>
+            <span id="rcp-date">-</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span>Petugas Kasir:</span>
+            <span id="rcp-cashier">-</span>
+          </div>
+        </div>
+
+        <div style="border-top: 1px dashed #cbd5e1; padding-top: 0.5rem; margin-bottom: 0.75rem;">
+          <div style="display: flex; justify-content: space-between;">
+            <span>No. Pinjaman :</span>
+            <strong id="rcp-loan-no">-</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span>Anggota      :</span>
+            <span id="rcp-member">-</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span>No. Angsuran :</span>
+            <span id="rcp-inst-no">Angsuran ke--</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span>Metode Bayar :</span>
+            <span id="rcp-method">-</span>
+          </div>
+        </div>
+
+        <div style="border-top: 1px dashed #cbd5e1; padding-top: 0.5rem; margin-bottom: 0.75rem;">
+          <div style="display: flex; justify-content: space-between;">
+            <span>Alokasi Denda:</span>
+            <span id="rcp-alloc-pen">Rp 0</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span>Alokasi Bunga:</span>
+            <span id="rcp-alloc-int">Rp 0</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span>Alokasi Pokok:</span>
+            <span id="rcp-alloc-prin">Rp 0</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-weight: 800; font-size: 0.95rem; border-top: 1px solid #0f172a; margin-top: 0.35rem; padding-top: 0.35rem;">
+            <span>TOTAL DIBAYAR:</span>
+            <span id="rcp-amount">Rp 0</span>
+          </div>
+        </div>
+
+        <div style="background: #f8fafc; padding: 0.5rem; border-radius: 6px; font-style: italic; font-size: 0.78rem; margin-bottom: 0.75rem;">
+          Terbilang: <strong id="rcp-words">-</strong>
+        </div>
+
+        <div style="border-top: 1px dashed #cbd5e1; padding-top: 0.5rem; font-size: 0.78rem;">
+          <div style="display: flex; justify-content: space-between;">
+            <span>Sisa Angsuran Ini  :</span>
+            <span id="rcp-rem-inst">Rp 0</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span>Sisa Pokok Pinjaman:</span>
+            <strong id="rcp-rem-loan">Rp 0</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span>Status Angsuran   :</span>
+            <strong id="rcp-status" style="color: #059669;">-</strong>
+          </div>
+        </div>
+
+        <div class="receipt-footer">
+          <div>Simpan kuitansi ini sebagai bukti pembayaran yang sah.</div>
+          <div>*** Terima Kasih atas Kerjasama Anda ***</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" onclick="closeModal('modal-receipt')" class="btn btn-secondary">Tutup</button>
+      <button type="button" onclick="window.print()" class="btn btn-primary" style="background: #3b82f6;">
+        🖨️ Cetak Kuitansi
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     CLIENT JAVASCRIPT
+================================================================ -->
+<script>
+  let currentInstallments = [];
+  let selectedInstallment = null;
+  let searchTimer = null;
+  const currentUserId = {{ current_user.id }};
+  const currentUserPerms = {{ user_perms | list | tojson }};
+  const isCashier = {{ 'true' if is_cashier else 'false' }};
+
+  document.addEventListener('DOMContentLoaded', () => {
+    loadInstallments();
+    loadPaymentsHistory();
+    {% if current_user.member %}
+    loadMyInstallments();
+    {% endif %}
+  });
+
+  function switchTab(tabName) {
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.style.display = 'none');
+
+    const btn = document.getElementById(`tab-btn-${tabName}`);
+    if (btn) btn.classList.add('active');
+
+    const pane = document.getElementById(`tab-${tabName}`);
+    if (pane) pane.style.display = 'block';
+  }
+
+  function formatIDR(val) {
+    return 'Rp ' + Number(val || 0).toLocaleString('id-ID');
+  }
+
+  function debounceSearch() {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => loadInstallments(), 350);
+  }
+
+  // ----------------------------------------------------------------
+  // 1. DATA LOADER: JADWAL ANGSURAN
+  // ----------------------------------------------------------------
+  async function loadInstallments() {
+    const search = document.getElementById('filter-search').value.trim();
+    const status = document.getElementById('filter-status').value;
+    const isOverdue = document.getElementById('filter-overdue-only').checked;
+
+    let url = `/api/v1/installments?limit=100`;
+    if (search) url += `&search=${encodeURIComponent(search)}`;
+    if (status) url += `&status=${encodeURIComponent(status)}`;
+    if (isOverdue) url += `&is_overdue_only=true`;
+
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('Gagal memuat jadwal angsuran');
+      currentInstallments = await res.json();
+      renderInstallmentTable(currentInstallments);
+    } catch (err) {
+      console.error(err);
+      App.showToast(err.message, 'error');
+    }
+  }
+
+  function renderInstallmentTable(items) {
+    const tbody = document.getElementById('installment-table-body');
+    if (!items || items.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="11" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+            Tidak ada data jadwal angsuran yang cocok dengan filter.
+          </td>
+        </tr>`;
+      return;
+    }
+
+    tbody.innerHTML = items.map(inst => {
+      const statusUpper = (inst.status || '').toUpperCase();
+      let badgeClass = 'badge-belum-jatuh-tempo';
+      if (statusUpper === 'JATUH_TEMPO') badgeClass = 'badge-jatuh-tempo';
+      else if (statusUpper === 'TERLAMBAT') badgeClass = 'badge-terlambat';
+      else if (statusUpper === 'DIBAYAR') badgeClass = 'badge-dibayar';
+      else if (statusUpper === 'LUNAS') badgeClass = 'badge-lunas';
+
+      // Action button
+      let actionBtn = '';
+      if (statusUpper !== 'LUNAS' && isCashier) {
+        actionBtn = `
+          <button onclick="openPayModal(${inst.id})" class="btn-sm-action btn-action-pay" title="Bayar Angsuran">
+            💵 Bayar
+          </button>
+        `;
+      }
+
+      return `
+        <tr>
+          <td><strong style="color: #38bdf8;">#${inst.installment_no}</strong></td>
+          <td><strong style="color: #f8fafc;">${inst.loan_no}</strong></td>
+          <td>
+            <div style="font-weight: 600; color: #f8fafc;">${inst.member_name}</div>
+            <div style="font-size: 0.72rem; color: #94a3b8;">${inst.member_no}</div>
+          </td>
+          <td style="font-weight: 600; color: ${statusUpper === 'TERLAMBAT' ? '#ef4444' : '#cbd5e1'};">
+            ${inst.due_date}
+            ${inst.days_overdue > 0 ? `<div style="font-size: 0.7rem; color: #ef4444;">Telat ${inst.days_overdue} hari</div>` : ''}
+          </td>
+          <td>${formatIDR(inst.principal_due)}</td>
+          <td>${formatIDR(inst.interest_due)}</td>
+          <td><strong style="color: #38bdf8;">${formatIDR(inst.total_due)}</strong></td>
+          <td style="color: #34d399;">${formatIDR(inst.total_paid)}</td>
+          <td><strong style="color: ${Number(inst.remaining_due) > 0 ? '#f59e0b' : '#94a3b8'};">${formatIDR(inst.remaining_due)}</strong></td>
+          <td><span class="badge-status ${badgeClass}">${statusUpper.replace(/_/g, ' ')}</span></td>
+          <td style="text-align: right; white-space: nowrap;">${actionBtn}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  // ----------------------------------------------------------------
+  // 2. DATA LOADER: RIWAYAT PEMBAYARAN KASIR
+  // ----------------------------------------------------------------
+  async function loadPaymentsHistory() {
+    try {
+      const res = await fetch('/api/v1/installments/payments/history?limit=50');
+      if (!res.ok) return;
+      const payments = await res.json();
+      renderPaymentHistoryTable(payments);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  function renderPaymentHistoryTable(payments) {
+    const tbody = document.getElementById('payment-history-body');
+    if (!payments || payments.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="11" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+            Belum ada catatan transaksi pembayaran kasir.
+          </td>
+        </tr>`;
+      return;
+    }
+
+    tbody.innerHTML = payments.map(p => `
+      <tr>
+        <td><strong style="color: #38bdf8;">${p.payment_no}</strong></td>
+        <td><span style="font-size: 0.8rem; color: #94a3b8;">${p.receipt_no}</span></td>
+        <td style="font-size: 0.8rem; color: #cbd5e1;">${new Date(p.created_at).toLocaleDateString('id-ID')}</td>
+        <td><strong>${p.loan_no}</strong></td>
+        <td>${p.member_name}</td>
+        <td><strong style="color: #34d399;">${formatIDR(p.amount_paid)}</strong></td>
+        <td style="color: #cbd5e1;">${formatIDR(p.principal_portion)}</td>
+        <td style="color: #f59e0b;">${formatIDR(p.interest_portion)}</td>
+        <td style="color: #ef4444;">${formatIDR(p.penalty_portion)}</td>
+        <td style="font-size: 0.8rem; color: #94a3b8;">${p.received_by_name || 'Kasir'}</td>
+        <td style="text-align: right;">
+          <button onclick="viewReceiptById(${p.id})" class="btn-sm-action btn-action-receipt" title="Cetak Kuitansi">
+            🧾 Struk
+          </button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  // ----------------------------------------------------------------
+  // 3. DATA LOADER: MY INSTALLMENTS (PORTAL ANGGOTA)
+  // ----------------------------------------------------------------
+  async function loadMyInstallments() {
+    try {
+      const res = await fetch('/api/v1/installments/my/schedules');
+      if (!res.ok) return;
+      const myItems = await res.json();
+      const tbody = document.getElementById('my-installments-body');
+      if (!tbody) return;
+
+      if (!myItems || myItems.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="9" style="text-align: center; padding: 2rem; color: #64748b;">
+              Anda belum memiliki jadwal angsuran aktif.
+            </td>
+          </tr>`;
+        return;
+      }
+
+      tbody.innerHTML = myItems.map(inst => {
+        const statusUpper = (inst.status || '').toUpperCase();
+        let badgeClass = 'badge-belum-jatuh-tempo';
+        if (statusUpper === 'JATUH_TEMPO') badgeClass = 'badge-jatuh-tempo';
+        else if (statusUpper === 'TERLAMBAT') badgeClass = 'badge-terlambat';
+        else if (statusUpper === 'DIBAYAR') badgeClass = 'badge-dibayar';
+        else if (statusUpper === 'LUNAS') badgeClass = 'badge-lunas';
+
+        return `
+          <tr>
+            <td><strong style="color: #38bdf8;">#${inst.installment_no}</strong></td>
+            <td>${inst.loan_no}</td>
+            <td style="font-weight: 600; color: ${statusUpper === 'TERLAMBAT' ? '#ef4444' : '#cbd5e1'};">
+              ${inst.due_date}
+            </td>
+            <td>${formatIDR(inst.principal_due)}</td>
+            <td>${formatIDR(inst.interest_due)}</td>
+            <td><strong style="color: #38bdf8;">${formatIDR(inst.total_due)}</strong></td>
+            <td style="color: #34d399;">${formatIDR(inst.total_paid)}</td>
+            <td><strong style="color: #f59e0b;">${formatIDR(inst.remaining_due)}</strong></td>
+            <td><span class="badge-status ${badgeClass}">${statusUpper.replace(/_/g, ' ')}</span></td>
+          </tr>
+        `;
+      }).join('');
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  // ----------------------------------------------------------------
+  // 4. PEMBAYARAN KASIR WORKFLOW
+  // ----------------------------------------------------------------
+  function openPayModal(installmentId) {
+    selectedInstallment = currentInstallments.find(i => i.id === installmentId);
+    if (!selectedInstallment) return;
+
+    document.getElementById('pay-loan-no').innerText = selectedInstallment.loan_no;
+    document.getElementById('pay-inst-title').innerText = `Angsuran ke-${selectedInstallment.installment_no}`;
+    document.getElementById('pay-member-name').innerText = selectedInstallment.member_name;
+    document.getElementById('pay-due-date').innerText = selectedInstallment.due_date;
+    document.getElementById('pay-prin-due').innerText = formatIDR(selectedInstallment.principal_due);
+    document.getElementById('pay-int-due').innerText = formatIDR(selectedInstallment.interest_due);
+    document.getElementById('pay-pen-due').innerText = formatIDR(selectedInstallment.penalty_due);
+    document.getElementById('pay-total-due').innerText = formatIDR(selectedInstallment.total_due);
+    document.getElementById('pay-rem-due').innerText = formatIDR(selectedInstallment.remaining_due);
+
+    const badge = document.getElementById('pay-status-badge');
+    badge.innerText = selectedInstallment.status.replace(/_/g, ' ');
+
+    // Default amount = remaining due
+    setPayAmountFull();
+
+    document.getElementById('modal-pay').classList.add('show');
+  }
+
+  function setPayAmountFull() {
+    if (!selectedInstallment) return;
+    const input = document.getElementById('pay-amount-input');
+    input.value = selectedInstallment.remaining_due;
+    input.max = selectedInstallment.remaining_due;
+    calculateAllocationPreview();
+  }
+
+  function setPayAmountCustom() {
+    if (!selectedInstallment) return;
+    const input = document.getElementById('pay-amount-input');
+    // Set half or arbitrary amount
+    input.value = Math.round(Number(selectedInstallment.remaining_due) / 2);
+    input.max = selectedInstallment.remaining_due;
+    calculateAllocationPreview();
+  }
+
+  function calculateAllocationPreview() {
+    if (!selectedInstallment) return;
+    const amount = Math.max(0, parseFloat(document.getElementById('pay-amount-input').value) || 0);
+    document.getElementById('pay-amount-helper').innerText = formatIDR(amount);
+
+    const penDue = Number(selectedInstallment.penalty_due || 0) - Number(selectedInstallment.penalty_paid || 0);
+    const intDue = Number(selectedInstallment.interest_due || 0) - Number(selectedInstallment.interest_paid || 0);
+
+    const allocPen = Math.min(amount, penDue);
+    const remAfterPen = amount - allocPen;
+
+    const allocInt = Math.min(remAfterPen, intDue);
+    const allocPrin = remAfterPen - allocInt;
+
+    const remDueAfter = Math.max(0, Number(selectedInstallment.remaining_due) - amount);
+
+    document.getElementById('alloc-pen').innerText = formatIDR(allocPen);
+    document.getElementById('alloc-int').innerText = formatIDR(allocInt);
+    document.getElementById('alloc-prin').innerText = formatIDR(allocPrin);
+    document.getElementById('alloc-rem').innerText = formatIDR(remDueAfter);
+  }
+
+  async function submitInstallmentPayment(e) {
+    e.preventDefault();
+    if (!selectedInstallment) return;
+
+    const amount = parseFloat(document.getElementById('pay-amount-input').value);
+    const method = document.getElementById('pay-method').value;
+    const notes = document.getElementById('pay-notes').value.trim();
+
+    try {
+      const res = await fetch('/api/v1/installments/payments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          installment_id: selectedInstallment.id,
+          amount: amount,
+          payment_method: method,
+          notes: notes || null
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || 'Pembayaran angsuran gagal');
+      }
+
+      const receipt = await res.json();
+      App.showToast('Pembayaran angsuran berhasil dicatat!', 'success');
+      closeModal('modal-pay');
+      
+      // Tampilkan kuitansi struk cetak
+      displayReceipt(receipt);
+
+      // Refresh data
+      loadInstallments();
+      loadPaymentsHistory();
+    } catch (err) {
+      App.showToast(err.message, 'error');
+    }
+  }
+
+  // ----------------------------------------------------------------
+  // 5. STRUK KUITANSI RESMI
+  // ----------------------------------------------------------------
+  async function viewReceiptById(paymentId) {
+    try {
+      const res = await fetch(`/api/v1/installments/payments/${paymentId}/receipt`);
+      if (!res.ok) throw new Error('Gagal mengambil data kuitansi');
+      const receipt = await res.json();
+      displayReceipt(receipt);
+    } catch (err) {
+      App.showToast(err.message, 'error');
+    }
+  }
+
+  function displayReceipt(r) {
+    document.getElementById('rcp-coop-name').innerText = r.cooperative_name;
+    document.getElementById('rcp-coop-addr').innerText = r.cooperative_address;
+    document.getElementById('rcp-coop-phone').innerText = `Telp: ${r.cooperative_phone}`;
+
+    document.getElementById('rcp-no').innerText = r.receipt_no;
+    document.getElementById('rcp-trx-no').innerText = r.cash_transaction_no || r.payment_no;
+    document.getElementById('rcp-date').innerText = new Date(r.payment_date).toLocaleString('id-ID');
+    document.getElementById('rcp-cashier').innerText = r.cashier_name;
+
+    document.getElementById('rcp-loan-no').innerText = r.loan_no;
+    document.getElementById('rcp-member').innerText = `${r.member_name} (${r.member_no})`;
+    document.getElementById('rcp-inst-no').innerText = `Angsuran ke-${r.installment_no}`;
+    document.getElementById('rcp-method').innerText = r.payment_method;
+
+    document.getElementById('rcp-alloc-pen').innerText = formatIDR(r.penalty_portion);
+    document.getElementById('rcp-alloc-int').innerText = formatIDR(r.interest_portion);
+    document.getElementById('rcp-alloc-prin').innerText = formatIDR(r.principal_portion);
+    document.getElementById('rcp-amount').innerText = formatIDR(r.amount_paid);
+
+    document.getElementById('rcp-words').innerText = r.amount_in_words;
+    document.getElementById('rcp-rem-inst').innerText = formatIDR(r.remaining_installment_due);
+    document.getElementById('rcp-rem-loan').innerText = formatIDR(r.remaining_loan_principal);
+    document.getElementById('rcp-status').innerText = r.installment_status_after;
+
+    document.getElementById('modal-receipt').classList.add('show');
+  }
+
+  function closeModal(modalId) {
+    const el = document.getElementById(modalId);
+    if (el) el.classList.remove('show');
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,6 @@
+STDOUT: 
+STDERR: 2026-11-06 21:34:46 0 [Warning] Can't create test file 'c:\xampp\mysql\data\AHNRFZI.lower-test' (Errcode: 2 "No such file or directory")
+D:/xampp/mysql/bin/mysqld.exe: Can't change dir to 'c:\xampp\mysql\data\' (Errcode: 2 "No such file or directory")
+2026-11-06 21:34:46 0 [ERROR] Aborting
+
+Return code: 1

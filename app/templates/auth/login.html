@@ -1,0 +1,197 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Masuk ke Sistem - KSP AHNRFZI{% endblock %}
+
+{% block body %}
+<div style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle at 10% 20%, rgba(37, 99, 235, 0.08) 0%, rgba(16, 185, 129, 0.05) 90%), var(--bg-main); padding: 2rem 1.5rem; position: relative;">
+  
+  <div class="card card-glass" style="width: 100%; max-width: 440px; padding: 2.5rem; border-radius: var(--radius-xl); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);">
+    
+    <!-- Branding Header -->
+    <div style="text-align: center; margin-bottom: 2rem;">
+      <div style="width: 56px; height: 56px; border-radius: var(--radius-lg); background: linear-gradient(135deg, #2563eb, #10b981); color: #fff; font-size: 1.6rem; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 1rem; box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);">
+        K
+      </div>
+      <h1 style="font-size: 1.5rem; font-weight: 800; color: var(--text-primary);">KSP AHNRFZI</h1>
+      <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 0.25rem;">Sistem Informasi Koperasi Simpan Pinjam</p>
+    </div>
+
+    <!-- Login Form -->
+    <form id="login-form" onsubmit="handleLogin(event)">
+      <div class="form-group">
+        <label class="form-label" for="username">Username / Email / NIK</label>
+        <input type="text" id="username" class="form-control" placeholder="Masukkan username, email, atau NIK" required autofocus />
+      </div>
+
+      <div class="form-group">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+          <label class="form-label" for="password" style="margin-bottom: 0;">Kata Sandi</label>
+          <a href="#forgot" style="font-size: 0.78rem; color: var(--primary-600);" onclick="App.showToast('Silakan hubungi IT Pusat / Admin untuk reset password', 'info')">Lupa Kata Sandi?</a>
+        </div>
+        <input type="password" id="password" class="form-control" placeholder="Masukkan kata sandi" required />
+      </div>
+
+      <!-- CAPTCHA Section (Kode Keamanan) -->
+      <div class="form-group" style="margin-top: 1.25rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+          <label class="form-label" for="captcha_code" style="margin-bottom: 0; font-weight: 600;">
+            Kode Keamanan
+          </label>
+          <span style="font-size: 0.75rem; color: var(--text-muted);">Verifikasi anti-bot</span>
+        </div>
+
+        <!-- CAPTCHA Image & Refresh Container -->
+        <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.6rem;">
+          <div id="captcha-img-container" style="flex: 1; height: 52px; background: #ffffff; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: var(--radius-md); overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative; box-shadow: 0 2px 6px rgba(0,0,0,0.15);">
+            <div id="captcha-skeleton" style="font-size: 0.8rem; color: #64748b; font-weight: 500; padding: 0.5rem;">
+              Memuat kode keamanan...
+            </div>
+            <img id="captcha-img" src="" alt="Kode Keamanan CAPTCHA KSP AHNRFZI" style="display: none; width: 100%; height: 100%; object-fit: contain; cursor: pointer; user-select: none;" onclick="loadCaptcha()" title="Klik gambar untuk memperbarui kode" />
+          </div>
+          <button type="button" id="btn-refresh-captcha" onclick="loadCaptcha()" class="btn btn-secondary" style="height: 52px; width: 52px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius-md); background: rgba(255, 255, 255, 0.08); border: 1px solid var(--border-color);" title="Perbarui kode keamanan (Refresh)" aria-label="Perbarui kode keamanan">
+            <svg id="captcha-refresh-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="transition: transform 0.35s ease;">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <polyline points="1 20 1 14 7 14"></polyline>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+          </button>
+        </div>
+
+        <!-- CAPTCHA Input & Hidden ID -->
+        <input type="text" id="captcha_code" class="form-control" placeholder="Masukkan kode keamanan" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" required style="letter-spacing: 0.15em; font-weight: 700; text-transform: uppercase;" />
+        <input type="hidden" id="captcha_id" value="" />
+        <div id="captcha-fallback" style="display: none; margin-top: 0.4rem; font-size: 0.78rem; color: #ef4444;">
+          Gagal memuat kode keamanan. <a href="javascript:void(0)" onclick="loadCaptcha()" style="text-decoration: underline; color: inherit; font-weight: 600;">Coba lagi</a>
+        </div>
+      </div>
+
+      <button type="submit" id="btn-submit" class="btn btn-primary w-full" style="padding: 0.85rem; font-size: 1rem; margin-top: 0.75rem;">
+        Masuk ke Sistem
+      </button>
+    </form>
+
+  </div>
+
+  <!-- Watermark Bawah Tengah -->
+  <div style="margin-top: 2rem; text-align: center; font-size: 0.85rem; color: var(--text-muted); letter-spacing: 0.04em; opacity: 0.85;">
+    Created by Ahmad Nur Fauzi
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentCaptchaId = '';
+
+async function loadCaptcha() {
+  const img = document.getElementById('captcha-img');
+  const skeleton = document.getElementById('captcha-skeleton');
+  const fallback = document.getElementById('captcha-fallback');
+  const refreshBtn = document.getElementById('btn-refresh-captcha');
+  const refreshIcon = document.getElementById('captcha-refresh-icon');
+  const inputCode = document.getElementById('captcha_code');
+
+  if (refreshIcon) refreshIcon.style.transform = 'rotate(180deg)';
+  if (refreshBtn) refreshBtn.disabled = true;
+  if (skeleton) {
+    skeleton.style.display = 'block';
+    skeleton.innerText = 'Memuat kode keamanan...';
+  }
+  if (img) img.style.display = 'none';
+  if (fallback) fallback.style.display = 'none';
+
+  try {
+    const url = currentCaptchaId ? `/api/v1/auth/captcha?prev_id=${encodeURIComponent(currentCaptchaId)}` : '/api/v1/auth/captcha';
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    currentCaptchaId = data.captcha_id;
+    document.getElementById('captcha_id').value = data.captcha_id;
+
+    const imageSource = data.captcha_image || data.data_url || data.image_url;
+    img.onload = () => {
+      img.style.display = 'block';
+      if (skeleton) skeleton.style.display = 'none';
+      if (fallback) fallback.style.display = 'none';
+    };
+    img.onerror = () => {
+      console.error('Gagal menampilkan gambar captcha');
+      if (skeleton) skeleton.style.display = 'none';
+      if (fallback) fallback.style.display = 'block';
+    };
+    img.src = imageSource;
+
+    if (inputCode) inputCode.value = '';
+  } catch (err) {
+    console.error('Gagal memuat captcha:', err);
+    if (skeleton) skeleton.style.display = 'none';
+    if (fallback) fallback.style.display = 'block';
+  } finally {
+    if (refreshBtn) refreshBtn.disabled = false;
+    if (refreshIcon) {
+      setTimeout(() => { refreshIcon.style.transform = 'rotate(0deg)'; }, 350);
+    }
+  }
+}
+
+// Muat CAPTCHA pertama kali saat halaman siap
+document.addEventListener('DOMContentLoaded', () => {
+  loadCaptcha();
+});
+
+async function handleLogin(e) {
+  e.preventDefault();
+  const btn = document.getElementById('btn-submit');
+  btn.disabled = true;
+  btn.innerText = 'Memproses Autentikasi...';
+
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
+  const captcha_id = document.getElementById('captcha_id').value;
+  const captcha_code = document.getElementById('captcha_code').value.trim().toUpperCase();
+
+  if (!captcha_code) {
+    App.showToast('Silakan masukkan kode keamanan.', 'warning');
+    btn.disabled = false;
+    btn.innerText = 'Masuk ke Sistem';
+    document.getElementById('captcha_code').focus();
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/v1/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password, captcha_id, captcha_code })
+    });
+    let data = {};
+    const raw = await res.text();
+    try { data = raw ? JSON.parse(raw) : {}; } catch (e) { data = { _raw: raw }; }
+    if (res.ok) {
+      App.showToast(`Selamat datang kembali, ${data.full_name}!`, 'success');
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 500);
+    } else {
+      console.error('Login gagal:', res.status, data);
+      const msg = data.detail || data.message || (res.status === 500
+        ? 'Server error (500). Pastikan backend jalan di http://127.0.0.1:8000 dan database sudah di-seed.'
+        : 'Username atau password tidak sesuai.');
+      App.showToast(msg, 'error');
+
+      // Selalu muat ulang CAPTCHA jika login gagal untuk mencegah replay attack / brute force
+      await loadCaptcha();
+
+      btn.disabled = false;
+      btn.innerText = 'Masuk ke Sistem';
+      document.getElementById('captcha_code').focus();
+    }
+  } catch (err) {
+    console.error('Login fetch error:', err);
+    App.showToast('Gagal menghubungi server backend. Pastikan server jalan di http://127.0.0.1:8000 (jalankan start_server.bat), bukan via Apache/XAMPP port 80.', 'error');
+    btn.disabled = false;
+    btn.innerText = 'Masuk ke Sistem';
+  }
+}
+</script>
+{% endblock %}

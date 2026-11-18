@@ -1,0 +1,247 @@
+{% extends "layouts/base.html" %}
+
+{% block body %}
+<div class="app-wrapper">
+  <!-- DYNAMIC SIDEBAR NAVIGATION (PER-PERMISSION FILTERED) -->
+  <aside class="sidebar" id="app-sidebar">
+    <div class="sidebar-header">
+      <div class="brand-logo">K</div>
+      <div class="brand-info">
+        <h2>AHNRFZI</h2>
+        <span>Koperasi Simpan Pinjam</span>
+      </div>
+    </div>
+
+    <div class="sidebar-nav">
+      <div class="nav-section-title">Menu Utama</div>
+      <a href="/" class="nav-item {% if active_page == 'dashboard' %}active{% endif %}">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        <span>Dashboard</span>
+      </a>
+
+      <!-- Modul Finansial & Operasional (Granular Permission Guards) -->
+      {% if 'saving.view' in user_perms or 'loan.view' in user_perms or 'installment.view' in user_perms or 'cashier.view' in user_perms %}
+      <div class="nav-section-title">Finansial & Layanan</div>
+      {% endif %}
+      
+      {% if 'saving.view' in user_perms or 'saving.transaction' in user_perms %}
+      <a href="/savings" class="nav-item {% if active_page == 'savings' %}active{% endif %}">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <span>Simpanan Anggota</span>
+      </a>
+      {% endif %}
+
+      {% if 'loan.view' in user_perms or 'loan.create' in user_perms or 'loan.approve' in user_perms %}
+      <a href="/loans" class="nav-item {% if active_page == 'loans' %}active{% endif %}">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        <span>Pinjaman Koperasi</span>
+      </a>
+      {% endif %}
+
+      {% if 'installment.view' in user_perms or 'installment.payment' in user_perms %}
+      <a href="/installments" class="nav-item {% if active_page == 'installments' %}active{% endif %}">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <span>Jadwal Angsuran</span>
+      </a>
+      {% endif %}
+
+      {% if 'cashier.view' in user_perms or 'cashier.transaction' in user_perms %}
+      <a href="/cashier" class="nav-item {% if active_page == 'cashier' %}active{% endif %}">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+        <span>Kasir & Loket</span>
+      </a>
+      {% endif %}
+
+      <!-- Modul Administrasi & Tata Kelola -->
+      {% if 'member.view' in user_perms or 'report.view' in user_perms or 'audit.view' in user_perms or 'user.manage' in user_perms %}
+      <div class="nav-section-title">Administrasi & Audit</div>
+      {% endif %}
+      
+      {% if 'user.manage' in user_perms or 'role.manage' in user_perms or 'system.manage' in user_perms %}
+      <a href="/rbac-it-pusat" class="nav-item {% if active_page == 'rbac_it_pusat' %}active{% endif %}">">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        <span>RBAC IT Pusat</span>
+      </a>
+      {% endif %}{% if current_user %}{% set admin_roles = [] %}{% for r in current_user.roles %}{% if r.code in ("ADMIN_KOPERASI", "ADMIN") %}{% set admin_roles = admin_roles + [r] %}{% endif %}{% endfor %}{% if admin_roles %}{% endif %}
+      <!-- Nav item divider -->
+      <div class="nav-section-title"></div>
+      
+      <a href="/ai-config" class="nav-item {% if active_page == 'ai_config' %}active{% endif %}">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v6h4v-6M5 15l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2-2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        <span>Konfigurasi Assistant AI</span>
+      </a>
+      
+      <!-- Nav item divider -->
+      <div class="nav-section-title"></div>
+      
+      <a href="/rbac-koperasi" class="nav-item {% if active_page == 'rbac_koperasi' %}active{% endif %}">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 3h5c4.415 0 8 3.585 8 8a4 4 0 004 4 4 4 0 004-4 4 4 0 00-4-4M4 7a4 4 0 014 4 4 4 0 01-4 4 4 4 0 01-4-4 4 4 0 014-4z"/></svg>
+        <span>RBAC Koperasi</span>
+      </a>
+      {% endif %}
+      
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        <span>Konfigurasi WhatsApp</span>
+      </a>
+      <a href="/employees" class="nav-item {% if active_page == 'employees' %}active{% endif %}">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+        <span>Data Pegawai</span>
+      </a>
+
+      {% if 'member.view' in user_perms %}
+      <a href="/members" class="nav-item {% if active_page == 'members' %}active{% endif %}">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+        <span>Keanggotaan</span>
+      </a>
+      {% endif %}
+
+      {% if 'report.view' in user_perms %}
+      <a href="/reports" class="nav-item {% if active_page == 'reports' %}active{% endif %}">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        <span>Laporan & SHU</span>
+      </a>
+      {% endif %}
+
+      {% if 'audit.view' in user_perms %}
+      <a href="/audit" class="nav-item {% if active_page == 'audit' %}active{% endif %}">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+        <span>Audit Trail Log</span>
+      </a>
+      {% endif %}
+
+
+      <a href="/docs" target="_blank" class="nav-item">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+        <span>OpenAPI / Swagger Docs</span>
+      </a>
+    </div>
+
+    <!-- Active User Profile Card in Sidebar Footer -->
+    <div class="sidebar-footer">
+      <div style="display: flex; align-items: center; gap: 0.75rem; overflow: hidden;">
+        <div class="user-avatar" style="width: 36px; height: 36px; font-size: 0.85rem; font-weight: 700; background: var(--primary-gradient); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+          {{ current_user.username[:2].upper() if current_user else 'AD' }}
+        </div>
+        <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+          <div style="font-size: 0.85rem; font-weight: 600; color: #fff;">{{ current_user.full_name if current_user else 'Administrator' }}</div>
+          <div style="font-size: 0.72rem; color: var(--text-sidebar-muted);">{{ active_role or 'ADMIN_KOPERASI' }}</div>
+        </div>
+      </div>
+      <button onclick="App.logout()" class="btn btn-secondary btn-icon" title="Logout" style="background: rgba(255,255,255,0.08); border: none; color: #fff; width: 32px; height: 32px; border-radius: 8px;">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <div class="main-content">
+    <!-- TOPBAR HEADER -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button onclick="App.toggleSidebar()" class="btn btn-secondary btn-icon sidebar-toggle-btn" aria-label="Buka/tutup navigasi">
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <div>
+          <h3 style="font-size: 1.15rem; font-weight: 700;">{% block page_title %}Dashboard Koperasi{% endblock %}</h3>
+          <p style="font-size: 0.8rem; color: var(--text-muted);">Sistem Informasi Koperasi Simpan Pinjam AHNRFZI</p>
+        </div>
+      </div>
+
+      <div class="topbar-right">
+        <!-- Dual Role Switcher (if multi-role) -->
+        {% if current_user and current_user.roles|length > 1 %}
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; letter-spacing: 0.5px;">PERAN:</span>
+          <select class="form-control" style="width: auto; padding: 0.4rem 0.8rem; font-size: 0.82rem; font-weight: 600; border-radius: 8px;" onchange="App.switchRole(this.value)">
+            {% for r in current_user.roles %}
+              <option value="{{ r.code }}" {% if r.code == active_role %}selected{% endif %}>
+                {{ r.name }} ({{ r.code }})
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        {% else %}
+        <div class="role-switcher-badge">
+          <span class="role-indicator-dot"></span>
+          <span>Peran: <strong>{{ active_role or 'ADMIN_KOPERASI' }}</strong></span>
+        </div>
+        {% endif %}
+
+        <!-- Notification Bell (Prompt #13) -->
+        <div style="position: relative;">
+          <button onclick="Notif.toggle()" class="btn btn-secondary btn-icon" title="Notifikasi" style="position: relative;">
+            🔔
+            <span id="notif-badge" style="display:none; position:absolute; top:-6px; right:-6px; background:var(--danger); color:#fff; font-size:.65rem; font-weight:700; min-width:18px; height:18px; border-radius:9px; align-items:center; justify-content:center; padding:0 4px;">0</span>
+          </button>
+          <div id="notif-dropdown" style="display:none; position:absolute; right:0; top:44px; width:340px; max-height:420px; overflow:auto; z-index:1200;" class="card card-glass">
+            <div class="card-header">
+              <div class="card-title">🔔 Notifikasi</div>
+              <button class="btn btn-secondary" style="font-size:.75rem;" onclick="Notif.readAll(event)">Tandai dibaca</button>
+            </div>
+            <div id="notif-list"></div>
+          </div>
+        </div>
+
+        <!-- User Profile Dropdown Button -->
+        <a href="/profile" class="btn btn-secondary" style="display: flex; align-items: center; gap: 0.4rem; font-size:.82rem; font-weight: 600; text-decoration: none;">
+          <span>👤</span>
+          <span>Profil Saya</span>
+        </a>
+
+        <!-- Theme Toggle -->
+        <button id="theme-toggle-btn" onclick="App.toggleTheme()" class="btn btn-secondary btn-icon" title="Ubah Tema Gelap/Terang">
+          🌙
+        </button>
+
+        <!-- Logout Button -->
+        <button onclick="App.logout()" class="btn btn-secondary" style="color: var(--danger); border-color: rgba(239, 68, 68, 0.2); font-size: 0.82rem; font-weight: 600;">
+          Keluar
+        </button>
+      </div>
+    </header>
+
+    <!-- CONTENT BODY VIEWPORT -->
+    <main class="content-body">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+
+<!-- FLOATING AI ASSISTANT TRIGGER (IF HAS PERMISSION) -->
+{% if 'ai.assistant' in user_perms %}
+<button class="ai-assistant-btn" onclick="AIChat.openModal()">
+  <span>✨</span>
+  <span>AI Assistant</span>
+</button>
+
+<!-- AI ASSISTANT MODAL DRAWER -->
+<div id="ai-assistant-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1100; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
+  <div class="card card-glass" style="width: 90%; max-width: 550px; height: 580px; display: flex; flex-direction: column; padding: 1.5rem; position: relative;">
+    <div class="card-header" style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 1rem; margin-bottom: 1rem;">
+      <div class="card-title" style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+        <span>🤖</span>
+        <span>AI Assistant KSP AHNRFZI</span>
+        <span id="ai-role-badge" style="display:none; font-size:.68rem; font-weight:700; background:rgba(37,99,235,0.12); color:#2563eb; padding:.15rem .55rem; border-radius:99px;"></span>
+        <span id="ai-provider-badge" style="font-size:.68rem;font-weight:700;background:var(--bg-subtle);color:var(--text-muted);padding:.15rem .55rem;border-radius:99px;">Memuat…</span>
+      </div>
+      <button onclick="AIChat.closeModal()" class="btn btn-secondary btn-icon" style="width: 32px; height: 32px; border: none;">✕</button>
+    </div>
+
+    <div id="ai-chat-messages" style="flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem; padding: 0.5rem 0;">
+      <div id="ai-greeting-bubble" style="align-self: flex-start; background: var(--bg-subtle); color: var(--text-primary); padding: 0.65rem 1rem; border-radius: 12px 12px 12px 0; max-width: 80%; font-size: 0.88rem; white-space: pre-line;">
+        Halo! Saya <strong>AI Assistant KSP AHNRFZI</strong>. Memuat profil peran Anda…
+      </div>
+      <div id="ai-quick-prompts" style="display: flex; flex-wrap: wrap; gap: 0.35rem; align-self: flex-start; max-width: 95%;">
+        <!-- Dynamic Suggested Questions Populated by Role -->
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 0.5rem; margin-top: 1rem; border-top: 1px solid var(--border-subtle); padding-top: 1rem;">
+      <textarea id="ai-chat-input" class="form-control" rows="2" placeholder="Ketik pertanyaan Anda (Enter kirim, Shift+Enter baris baru)..." style="resize: none;"></textarea>
+      <button id="ai-send-btn" onclick="AIChat.ask()" class="btn btn-primary">Kirim</button>
+      <button id="ai-stop-btn" onclick="AIChat.stop()" class="btn btn-secondary" style="display: none;">Stop</button>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,172 @@
+{% extends "layouts/dashboard_layout.html" %}
+{% block title %}Data Pegawai - KSP AHNRFZI{% endblock %}
+{% block page_title %}Manajemen Kepegawaian (HRD){% endblock %}
+{% block content %}
+<div class="card" style="margin-bottom:1rem;">
+  <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">
+    <input id="e-search" class="form-control" placeholder="Cari nama / NIP / HP…" style="max-width:260px;">
+    <input id="e-dept" class="form-control" placeholder="Filter departemen" style="max-width:200px;">
+    <select id="e-status" class="form-control" style="width:auto;">
+      <option value="">Semua Status</option>
+      <option>TETAP</option><option>KONTRAK</option><option>PROBATION</option>
+      <option>MAGANG</option><option>RESIGNED</option>
+    </select>
+    <button class="btn btn-primary" onclick="HRD.load(1)">🔍 Tampilkan</button>
+    <button class="btn btn-secondary" onclick="HRD.reset()">↺ Reset</button>
+    {% if can_create %}<button class="btn btn-primary" onclick="HRD.openAdd()">＋ Tambah Pegawai</button>{% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><div class="card-title">👔 Daftar Pegawai</div><span class="badge badge-primary" id="e-count">0 pegawai</span></div>
+  <div id="e-summary" style="padding:0 1rem .5rem;font-size:.85rem;color:var(--text-secondary);"></div>
+  <div class="table-container" style="max-height:560px;overflow:auto;"><table class="table">
+    <thead><tr><th>NIP</th><th>Nama</th><th>Departemen</th><th>Jabatan</th><th>Status</th><th>Anggota</th><th>Aksi</th></tr></thead>
+    <tbody id="e-body"><tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted);">Memuat…</td></tr></tbody>
+  </table></div>
+  <div style="display:flex;gap:.5rem;align-items:center;justify-content:flex-end;margin-top:.8rem;">
+    <button class="btn btn-secondary" onclick="HRD.prev()">‹ Prev</button><span id="e-page">Hal 1</span><button class="btn btn-secondary" onclick="HRD.next()">Next ›</button>
+  </div>
+</div>
+
+<!-- Modal tambah/edit -->
+<div id="e-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1100;align-items:center;justify-content:center;">
+  <div class="card" style="width:92%;max-width:640px;max-height:90vh;overflow:auto;padding:1.5rem;">
+    <div class="card-header"><div class="card-title" id="e-modal-title">Tambah Pegawai</div>
+      <button class="btn btn-secondary btn-icon" onclick="HRD.closeModal()">✕</button></div>
+    <input type="hidden" id="e-id">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;">
+      <div><label class="form-label">NIP *</label><input id="e-nip" class="form-control"></div>
+      <div><label class="form-label">Nama Lengkap *</label><input id="e-nama" class="form-control"></div>
+      <div><label class="form-label">NIK KTP</label><input id="e-nik" class="form-control"></div>
+      <div><label class="form-label">No. HP</label><input id="e-hp" class="form-control"></div>
+      <div><label class="form-label">Departemen *</label><input id="e-departemen" class="form-control"></div>
+      <div><label class="form-label">Jabatan *</label><input id="e-jabatan" class="form-control"></div>
+      <div><label class="form-label">Status</label>
+        <select id="e-empstatus" class="form-control"><option>TETAP</option><option>KONTRAK</option><option>PROBATION</option><option>MAGANG</option></select></div>
+      <div><label class="form-label">Tanggal Masuk *</label><input id="e-hire" type="date" class="form-control"></div>
+      <div><label class="form-label">Gaji Pokok</label><input id="e-salary" type="number" class="form-control" value="0"></div>
+      <div><label class="form-label">Tunjangan</label><input id="e-allow" type="number" class="form-control" value="0"></div>
+      <div><label class="form-label">Email Korporat</label><input id="e-email" class="form-control"></div>
+      <div><label class="form-label">Bank Payroll</label><input id="e-bank" class="form-control"></div>
+    </div>
+    <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:1rem;">
+      <button class="btn btn-secondary" onclick="HRD.closeModal()">Batal</button>
+      <button class="btn btn-primary" onclick="HRD.save()">💾 Simpan</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+const HRD = {
+  page: 1, totalPages: 1, canUpdate: {{ 'true' if can_update else 'false' }},
+  async load(p) {
+    if (p) this.page = p;
+    const q = new URLSearchParams({ page: this.page, limit: 25 });
+    const s = document.getElementById('e-search').value.trim();
+    const d = document.getElementById('e-dept').value.trim();
+    const st = document.getElementById('e-status').value;
+    if (s) q.set('search', s);
+    if (d) q.set('department', d);
+    if (st) q.set('status', st);
+    const body = document.getElementById('e-body');
+    body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;">Memuat…</td></tr>';
+    try {
+      const r = await fetch('/api/v1/employees?' + q.toString());
+      if (r.status === 401) { window.location.href = '/login'; return; }
+      if (!r.ok) {
+        const e = await r.json().catch(() => ({}));
+        body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;">Gagal: ' + (e.detail || r.status) + '</td></tr>';
+        return;
+      }
+      const j = await r.json();
+      this.totalPages = j.metadata.total_pages || 1;
+      document.getElementById('e-page').textContent = 'Hal ' + j.metadata.current_page + ' / ' + this.totalPages;
+      document.getElementById('e-count').textContent = j.metadata.total_records + ' pegawai';
+      document.getElementById('e-summary').textContent =
+        'Aktif: ' + j.summary.pegawai_aktif + ' · Nonaktif: ' + j.summary.pegawai_nonaktif;
+      if (!j.data.length) { body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;">Tidak ada data.</td></tr>'; return; }
+      body.innerHTML = j.data.map(e =>
+        '<tr><td><strong>' + e.nip + '</strong></td><td>' + e.full_name + '<br><small>' + (e.phone_number || '-') + '</small></td>' +
+        '<td>' + e.department + '</td><td>' + e.position + '</td>' +
+        '<td><span class="badge ' + (e.employment_status === 'RESIGNED' ? 'badge-danger' : 'badge-success') + '">' + e.employment_status + '</span></td>' +
+        '<td>' + (e.member_no ? e.member_no + ' (' + e.member_status + ')' : '<small>-</small>') + '</td>' +
+        '<td style="white-space:nowrap;">' + (this.canUpdate
+          ? '<button class="btn btn-secondary" onclick="HRD.openEdit(' + e.id + ')">✏️</button> ' +
+            (e.employment_status === 'RESIGNED'
+              ? '<button class="btn btn-secondary" onclick="HRD.activate(' + e.id + ')">✅</button>'
+              : '<button class="btn btn-secondary" onclick="HRD.deactivate(' + e.id + ')">🚫</button>')
+          : '<small>-</small>') + '</td></tr>').join('');
+    } catch (e) { body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;">Gagal menghubungi server.</td></tr>'; }
+  },
+  reset() { document.getElementById('e-search').value = ''; document.getElementById('e-dept').value = ''; document.getElementById('e-status').value = ''; this.load(1); },
+  prev() { if (this.page > 1) this.load(this.page - 1); },
+  next() { if (this.page < this.totalPages) this.load(this.page + 1); },
+  openAdd() {
+    document.getElementById('e-modal-title').textContent = 'Tambah Pegawai';
+    ['e-id','e-nip','e-nama','e-nik','e-hp','e-departemen','e-jabatan','e-email','e-bank'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('e-salary').value = 0; document.getElementById('e-allow').value = 0;
+    document.getElementById('e-modal').style.display = 'flex';
+  },
+  async openEdit(id) {
+    const r = await fetch('/api/v1/employees/' + id);
+    if (!r.ok) { App.showToast('Gagal memuat data pegawai', 'error'); return; }
+    const e = await r.json();
+    document.getElementById('e-modal-title').textContent = 'Ubah Pegawai ' + e.nip;
+    document.getElementById('e-id').value = e.id;
+    document.getElementById('e-nip').value = e.nip; document.getElementById('e-nip').disabled = true;
+    document.getElementById('e-nama').value = e.full_name;
+    document.getElementById('e-nik').value = e.id_card_number || '';
+    document.getElementById('e-hp').value = e.phone_number || '';
+    document.getElementById('e-departemen').value = e.department;
+    document.getElementById('e-jabatan').value = e.position;
+    document.getElementById('e-empstatus').value = e.employment_status;
+    document.getElementById('e-hire').value = e.hire_date;
+    document.getElementById('e-salary').value = e.base_salary;
+    document.getElementById('e-allow').value = e.allowances;
+    document.getElementById('e-email').value = e.email_corporate || '';
+    document.getElementById('e-bank').value = e.payroll_bank_name || '';
+    document.getElementById('e-modal').style.display = 'flex';
+  },
+  closeModal() { document.getElementById('e-modal').style.display = 'none'; document.getElementById('e-nip').disabled = false; },
+  async save() {
+    const id = document.getElementById('e-id').value;
+    const payload = {
+      nip: document.getElementById('e-nip').value.trim(),
+      full_name: document.getElementById('e-nama').value.trim(),
+      id_card_number: document.getElementById('e-nik').value.trim() || null,
+      phone_number: document.getElementById('e-hp').value.trim() || null,
+      department: document.getElementById('e-departemen').value.trim(),
+      position: document.getElementById('e-jabatan').value.trim(),
+      employment_status: document.getElementById('e-empstatus').value,
+      hire_date: document.getElementById('e-hire').value,
+      base_salary: parseFloat(document.getElementById('e-salary').value) || 0,
+      allowances: parseFloat(document.getElementById('e-allow').value) || 0,
+      email_corporate: document.getElementById('e-email').value.trim() || null,
+      payroll_bank_name: document.getElementById('e-bank').value.trim() || null,
+    };
+    if (!payload.nip || !payload.full_name || !payload.department || !payload.position || !payload.hire_date) {
+      App.showToast('NIP, nama, departemen, jabatan, dan tanggal masuk wajib diisi', 'error'); return;
+    }
+    const url = id ? '/api/v1/employees/' + id : '/api/v1/employees';
+    const r = await fetch(url, { method: id ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    if (r.ok) { App.showToast('Data pegawai tersimpan', 'success'); this.closeModal(); this.load(this.page); }
+    else { const e = await r.json().catch(() => ({})); App.showToast(e.detail || 'Gagal menyimpan', 'error'); }
+  },
+  async deactivate(id) {
+    if (!confirm('Nonaktifkan pegawai ini? Status menjadi RESIGNED dan tidak dapat diproses sebagai anggota.')) return;
+    const r = await fetch('/api/v1/employees/' + id + '/deactivate', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+    if (r.ok) { App.showToast('Pegawai dinonaktifkan', 'success'); this.load(this.page); }
+    else { const e = await r.json().catch(() => ({})); App.showToast(e.detail || 'Gagal', 'error'); }
+  },
+  async activate(id) {
+    if (!confirm('Aktifkan kembali pegawai ini?')) return;
+    const r = await fetch('/api/v1/employees/' + id + '/activate', { method: 'PATCH' });
+    if (r.ok) { App.showToast('Pegawai diaktifkan', 'success'); this.load(this.page); }
+    else { const e = await r.json().catch(() => ({})); App.showToast(e.detail || 'Gagal', 'error'); }
+  },
+};
+document.addEventListener('DOMContentLoaded', () => HRD.load(1));
+</script>
+{% endblock %}

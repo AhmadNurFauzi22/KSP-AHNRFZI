@@ -1,0 +1,264 @@
+/* ==========================================================================
+   KSP AHNRFZI - DASHBOARD LAYOUT
+   Sidebar, Topbar, Role Switcher, Mobile Drawer & Glass Panels
+   ========================================================================== */
+
+.app-wrapper {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* Sidebar Styles */
+.sidebar {
+  width: var(--sidebar-width);
+  background: var(--bg-sidebar);
+  color: var(--text-sidebar);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 100;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.sidebar-header {
+  padding: 1.5rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.brand-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, #2563eb, #10b981);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 1.2rem;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+}
+
+.brand-info h2 {
+  font-size: 1.05rem;
+  color: #ffffff;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.brand-info span {
+  font-size: 0.72rem;
+  color: var(--text-sidebar-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.sidebar-nav {
+  padding: 1.25rem 0.85rem;
+  flex-grow: 1;
+  overflow-y: auto;
+}
+
+.nav-section-title {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  color: var(--text-sidebar-muted);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 0.75rem 0.75rem 0.35rem 0.75rem;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: var(--radius-md);
+  color: var(--text-sidebar);
+  font-size: 0.92rem;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.nav-item:hover {
+  background: var(--bg-sidebar-hover);
+  color: #ffffff;
+}
+
+.nav-item.active {
+  background: var(--bg-sidebar-active);
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.nav-icon {
+  width: 20px;
+  height: 20px;
+  opacity: 0.85;
+}
+
+.sidebar-footer {
+  padding: 1rem 1.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Main Content Layout */
+.main-content {
+  flex-grow: 1;
+  margin-left: var(--sidebar-width);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  transition: margin-left 0.3s ease;
+}
+
+/* Topbar Header */
+.topbar {
+  height: var(--topbar-height);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-bottom: 1px solid var(--border-subtle);
+  position: sticky;
+  top: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2rem;
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Role Switcher Pill */
+.role-switcher-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.role-switcher-badge:hover {
+  background: var(--primary-50);
+  border-color: var(--primary-300);
+}
+
+.role-indicator-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--emerald-500);
+}
+
+.user-profile-menu {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+}
+
+.user-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, var(--primary-600), var(--indigo-600));
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+/* Page Content Viewport */
+.content-body {
+  padding: 2rem;
+  flex-grow: 1;
+}
+
+.page-header {
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+/* AI Assistant Floating Widget */
+.ai-assistant-btn {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  z-index: 1000;
+  background: linear-gradient(135deg, var(--indigo-600), var(--primary-600));
+  color: #ffffff;
+  padding: 0.85rem 1.35rem;
+  border-radius: var(--radius-full);
+  box-shadow: 0 8px 24px rgba(79, 70, 229, 0.4);
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.ai-assistant-btn:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 12px 30px rgba(79, 70, 229, 0.5);
+}
+
+/* Responsive Drawer for mobile */
+.sidebar-toggle-btn { display: none; }
+@media (max-width: 992px) {
+  .sidebar-toggle-btn { display: inline-flex; }
+  .sidebar {
+    transform: translateX(-100%);
+  }
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  .main-content {
+    margin-left: 0;
+  }
+  .topbar {
+    padding: 0 1rem;
+  }
+  .content-body {
+    padding: 1.25rem;
+  }
+}

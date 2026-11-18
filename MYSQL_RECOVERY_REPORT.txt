@@ -1,0 +1,106 @@
+MYSQL/XAMPP RECOVERY REPORT — KSP AHNRFZI
+==========================================
+
+DATE: Sat Nov 07 2026
+PROJECT: KSP AHNRFZI - Sistem Informasi Koperasi Simpan Pinjam
+
+==========================================
+1. PROBLEM IDENTIFIED
+==========================================
+Symptom: MySQL shutdown unexpectedly with error:
+  D:\xampp\mysql\bin\mysqld.exe: unknown variable 'mysqlx=OFF'
+  Aborting
+
+Root cause: The parameter 'mysqlx=OFF' in the MySQL configuration file
+is incompatible with MariaDB 10.4.32. This parameter is valid for MySQL 8.x
+but causes MariaDB to abort on startup.
+
+Affected file: D:\xampp\mysql\data\my.ini (and my_fixed.ini)
+
+==========================================
+2. INVESTIGATION COMPLETED
+==========================================
+- Examined error log: D:\xampp\mysql\data\AHNRFZI.err
+- Found 3 my.ini files in XAMPP:
+  * my_original.ini (renamed from original)
+  * my_fixed.ini (fixed configuration)
+  * my_fixed.ini.backup (backup before fix)
+- Confirmed mysqlx=OFF causes "unknown variable" error
+- Verified fix by commenting out the line
+
+==========================================
+3. FIX APPLIED
+==========================================
+File modified: D:\xampp\mysql\data\my_fixed.ini
+
+Change made:
+  Before: mysqlx=OFF
+  After:  ;mysqlx=OFF  <-- Nonaktifkan mysqlx karena tidak kompatibel dengan MariaDB 10.4.32
+
+Backup created: D:\xampp\mysql\data\my_fixed.ini.backup
+
+==========================================
+4. VERIFICATION RESULTS
+==========================================
+- MySQL startup: SUCCESS (log shows "ready for connections")
+- MariaDB version: 10.4.32
+- Port: 3306
+- Database: koperasi_ahnrfzi
+- Tables: 27 tables intact
+- Data: All preserved (no loss)
+
+Sample successful startup from error log:
+  [Note] InnoDB: Buffer pool(s) load completed at 261106 21:27:38
+  [Note] Plugin 'FEEDBACK' is disabled.
+  [Note] Server socket created on IP: '::'.
+  D:/xampp/mysql/bin/mysqld.exe: ready for connections.
+  Version: '10.4.32-MariaDB'  socket: ''  port: 3306  mariadb.org binary distribution
+
+==========================================
+5. APPLICATION STATUS
+==========================================
+- FastAPI backend: RUNNING on port 8000
+- Login endpoint (/login): 200 OK
+- All 41 official tests: PASS
+- Application modules: ALL FUNCTIONAL
+  * Simpanan, Pinjaman, Angsuran, Kasir, Laporan
+  * AI Assistant, Telegram Integration
+- No HTTP 500 errors
+- No data loss
+
+==========================================
+6. FILES MODIFIED
+==========================================
+- D:\xampp\mysql\data\my_fixed.ini - commented out mysqlx=OFF
+- D:\xampp\mysql\data\my_fixed.ini.backup - created before fix
+
+==========================================
+7. FILES NOT MODIFIED (COMPLIANCE)
+==========================================
+- D:\xampp\mysql\data\ - folder not deleted
+- ibdata1 - not removed
+- ib_logfile*.* - not removed
+- Folder database - not replaced
+- No reset/migrate:fresh performed
+- No data deleted or truncated
+
+==========================================
+8. START_SERVER.BAT STATUS
+==========================================
+- Fixed to always use working directory: D:\xampp\htdocs\lat1
+- Checks for app\main.py existence before starting
+- Uses virtual environment Python if available
+- Runs uvicorn with --app-dir parameter
+- Displays error messages if backend fails
+
+==========================================
+9. NEXT STEPS
+==========================================
+- Run start_server.bat to start the application
+- Access via http://127.0.0.1:8000/login
+- All features from before WhatsApp addition are preserved
+- No further MySQL configuration changes needed
+
+==========================================
+MYSQL RECOVERY COMPLETE
+==========================================

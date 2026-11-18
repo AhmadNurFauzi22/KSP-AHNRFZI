@@ -1,0 +1,932 @@
+{% extends "layouts/dashboard_layout.html" %}
+
+{% block page_title %}Manajemen Keanggotaan{% endblock %}
+
+{% block content %}
+<style>
+  /* ============================================================
+     MEMBER MODULE STYLES
+  ============================================================ */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 14px;
+    padding: 1.1rem 1.3rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .stat-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.12); }
+  .stat-card .stat-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); font-weight: 600; }
+  .stat-card .stat-value { font-size: 1.8rem; font-weight: 800; color: var(--text-primary); line-height: 1; }
+  .stat-card .stat-sub { font-size: 0.72rem; color: var(--text-muted); }
+  .stat-card.stat-success .stat-value { color: var(--success); }
+  .stat-card.stat-warning .stat-value { color: var(--warning, #f59e0b); }
+  .stat-card.stat-danger .stat-value { color: var(--danger); }
+  .stat-card.stat-info .stat-value { color: var(--primary-light, #818cf8); }
+
+  /* Toolbar */
+  .member-toolbar {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 1.2rem;
+  }
+  .member-toolbar .search-box {
+    position: relative; flex: 1; min-width: 220px;
+  }
+  .member-toolbar .search-box input { padding-left: 2.4rem; width: 100%; }
+  .search-icon { position: absolute; left: 0.8rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; }
+  .filter-select { padding: 0.5rem 0.8rem; font-size: 0.85rem; border-radius: 10px; border: 1px solid var(--border-subtle); background: var(--bg-input, var(--bg-subtle)); color: var(--text-primary); }
+  
+  /* Table */
+  .member-table-wrapper { overflow-x: auto; border-radius: 14px; border: 1px solid var(--border-subtle); }
+  .member-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+  .member-table th { background: var(--bg-subtle); padding: 0.85rem 1rem; text-align: left; font-size: 0.73rem; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-muted); font-weight: 700; white-space: nowrap; border-bottom: 1px solid var(--border-subtle); }
+  .member-table td { padding: 0.9rem 1rem; border-bottom: 1px solid var(--border-subtle); vertical-align: middle; color: var(--text-primary); }
+  .member-table tbody tr:hover { background: var(--bg-subtle); transition: background 0.15s; }
+  .member-table tbody tr:last-child td { border-bottom: none; }
+  
+  /* Member avatar */
+  .member-avatar { width: 36px; height: 36px; border-radius: 50%; font-size: 0.8rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; color: #fff; flex-shrink: 0; }
+  .member-info { display: flex; align-items: center; gap: 0.75rem; }
+  .member-name { font-weight: 600; color: var(--text-primary); }
+  .member-no  { font-size: 0.72rem; color: var(--text-muted); font-family: 'Courier New', monospace; }
+
+  /* Status badges */
+  .badge { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.22rem 0.65rem; border-radius: 999px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
+  .badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+  .badge-aktif    { background: rgba(16,185,129,0.12); color: #10b981; }
+  .badge-calon    { background: rgba(245,158,11,0.12);  color: #f59e0b; }
+  .badge-nonaktif { background: rgba(148,163,184,0.15); color: #94a3b8; }
+  .badge-keluar   { background: rgba(239,68,68,0.12);   color: #ef4444; }
+
+  /* Pagination */
+  .pagination { display: flex; gap: 0.4rem; align-items: center; justify-content: flex-end; margin-top: 1rem; flex-wrap: wrap; }
+  .pagination button { padding: 0.4rem 0.75rem; border: 1px solid var(--border-subtle); background: var(--bg-card); border-radius: 8px; color: var(--text-primary); font-size: 0.82rem; cursor: pointer; transition: all 0.2s; font-weight: 600; }
+  .pagination button:hover:not(:disabled) { background: var(--primary-color, #6366f1); color: #fff; border-color: transparent; }
+  .pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .pagination button.active { background: var(--primary-gradient, #6366f1); color: #fff; border-color: transparent; }
+  .pagination .page-info { font-size: 0.8rem; color: var(--text-muted); padding: 0 0.5rem; }
+
+  /* Empty state */
+  .empty-state { text-align: center; padding: 3.5rem 1rem; color: var(--text-muted); }
+  .empty-state .empty-icon { font-size: 3rem; margin-bottom: 0.75rem; }
+  .empty-state p { font-size: 0.9rem; max-width: 350px; margin: 0 auto; }
+
+  /* Loading */
+  .loading-row td { text-align: center; padding: 2.5rem; color: var(--text-muted); font-size: 0.88rem; }
+  .spinner { display: inline-block; width: 22px; height: 22px; border: 3px solid var(--border-subtle); border-top-color: var(--primary-color, #6366f1); border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 0.5rem; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Modal */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 1050; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); padding: 1rem; }
+  .modal-overlay.open { display: flex; }
+  .modal-box { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 18px; width: 100%; max-width: 680px; max-height: 90vh; overflow-y: auto; box-shadow: 0 24px 64px rgba(0,0,0,0.35); }
+  .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 1.3rem 1.5rem; border-bottom: 1px solid var(--border-subtle); position: sticky; top: 0; background: var(--bg-card); z-index: 1; border-radius: 18px 18px 0 0; }
+  .modal-title { font-size: 1.05rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; }
+  .modal-body  { padding: 1.5rem; }
+  .modal-footer { padding: 1rem 1.5rem; border-top: 1px solid var(--border-subtle); display: flex; justify-content: flex-end; gap: 0.75rem; }
+
+  /* Form grid */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .form-grid .span-2 { grid-column: 1 / -1; }
+  .form-group { display: flex; flex-direction: column; gap: 0.35rem; }
+  .form-group label { font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; }
+  .form-group .hint { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem; }
+  .form-group .error-msg { font-size: 0.72rem; color: var(--danger); margin-top: 0.2rem; }
+
+  /* Detail view */
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  .detail-item { display: flex; flex-direction: column; gap: 0.2rem; }
+  .detail-item .d-label { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; }
+  .detail-item .d-value { font-size: 0.88rem; font-weight: 600; color: var(--text-primary); }
+  .detail-section { margin-bottom: 1.25rem; }
+  .detail-section-title { font-size: 0.8rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.4rem; }
+  .detail-section-title::before { content: ''; width: 3px; height: 14px; background: var(--primary-gradient, #6366f1); border-radius: 2px; display: inline-block; }
+
+  /* Confirm dialog */
+  .confirm-dialog .modal-box { max-width: 420px; }
+
+  @media (max-width: 640px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .form-grid .span-2 { grid-column: auto; }
+    .detail-grid { grid-template-columns: 1fr; }
+  }
+</style>
+
+<!-- ================================================================
+     PAGE HEADER
+================================================================ -->
+<div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
+  <div>
+    <h1 style="font-size: 1.6rem; font-weight: 800; margin-bottom: 0.2rem;">Manajemen Keanggotaan</h1>
+    <p style="color: var(--text-muted); font-size: 0.875rem;">Kelola data seluruh anggota koperasi AHNRFZI</p>
+  </div>
+  {% if 'member.create' in user_perms %}
+  <button id="btn-add-member" class="btn btn-primary" style="display: flex; align-items: center; gap: 0.5rem;" onclick="Members.openCreateModal()">
+    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+    Daftarkan Anggota
+  </button>
+  {% endif %}
+</div>
+
+<!-- ================================================================
+     STATS BAR
+================================================================ -->
+<div class="stats-bar">
+  <div class="stat-card">
+    <div class="stat-label">Total Anggota</div>
+    <div class="stat-value" id="stat-total">{{ stats.total }}</div>
+    <div class="stat-sub">Seluruh data terdaftar</div>
+  </div>
+  <div class="stat-card stat-success">
+    <div class="stat-label">Aktif</div>
+    <div class="stat-value" id="stat-aktif">{{ stats.aktif }}</div>
+    <div class="stat-sub">Dapat bertransaksi</div>
+  </div>
+  <div class="stat-card stat-warning">
+    <div class="stat-label">Calon</div>
+    <div class="stat-value" id="stat-calon">{{ stats.calon }}</div>
+    <div class="stat-sub">Menunggu verifikasi</div>
+  </div>
+  <div class="stat-card stat-info">
+    <div class="stat-label">Nonaktif</div>
+    <div class="stat-value" id="stat-nonaktif">{{ stats.nonaktif }}</div>
+    <div class="stat-sub">Dibekukan sementara</div>
+  </div>
+</div>
+
+<!-- ================================================================
+     TOOLBAR: SEARCH + FILTER
+================================================================ -->
+<div class="member-toolbar">
+  <div class="search-box">
+    <svg class="search-icon" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+    <input type="text" id="search-input" class="form-control" placeholder="Cari nama, NIK, nomor anggota..." oninput="Members.debounceSearch()" style="padding-left: 2.4rem;" />
+  </div>
+  
+  <select id="filter-status" class="filter-select" onchange="Members.loadMembers(1)">
+    <option value="">Semua Status</option>
+    <option value="AKTIF">Aktif</option>
+    <option value="CALON">Calon</option>
+    <option value="NONAKTIF">Nonaktif</option>
+    <option value="KELUAR">Keluar</option>
+  </select>
+  
+  <select id="filter-gender" class="filter-select" onchange="Members.loadMembers(1)">
+    <option value="">Semua Gender</option>
+    <option value="L">Laki-laki</option>
+    <option value="P">Perempuan</option>
+  </select>
+
+  <select id="filter-sort" class="filter-select" onchange="Members.loadMembers(1)">
+    <option value="id_desc">Terbaru</option>
+    <option value="full_name_asc">Nama A-Z</option>
+    <option value="join_date_desc">Bergabung Terbaru</option>
+    <option value="member_no_asc">No. Anggota</option>
+  </select>
+
+  <button class="btn btn-secondary" onclick="Members.loadMembers(1)" title="Refresh data" style="padding: 0.5rem 0.7rem;">
+    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+  </button>
+</div>
+
+<!-- ================================================================
+     MEMBERS TABLE
+================================================================ -->
+<div class="card" style="padding: 0; overflow: hidden;">
+  <div class="member-table-wrapper">
+    <table class="member-table" id="members-table">
+      <thead>
+        <tr>
+          <th style="width: 36px;">#</th>
+          <th>Anggota</th>
+          <th>NIK</th>
+          <th>Unit / Jabatan</th>
+          <th>Telepon</th>
+          <th>Bergabung</th>
+          <th>Status</th>
+          <th style="text-align: center; width: 130px;">Aksi</th>
+        </tr>
+      </thead>
+      <tbody id="members-tbody">
+        <tr class="loading-row">
+          <td colspan="8"><span class="spinner"></span>Memuat data anggota...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Pagination -->
+<div class="pagination" id="pagination-bar"></div>
+
+<!-- ================================================================
+     MODAL: CREATE / EDIT MEMBER
+================================================================ -->
+<div id="modal-member-form" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-form-title">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+        <span id="modal-form-title">Daftarkan Anggota Baru</span>
+      </div>
+      <button onclick="Members.closeFormModal()" class="btn btn-secondary btn-icon" style="width: 32px; height: 32px;">✕</button>
+    </div>
+    <form id="member-form" onsubmit="Members.submitForm(event)">
+      <div class="modal-body">
+        <input type="hidden" id="form-member-id" value="" />
+
+        <!-- Data Pribadi -->
+        <div style="font-size: 0.8rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem;">📋 Data Pribadi</div>
+        <div class="form-grid">
+          <div class="form-group span-2">
+            <label for="form-full-name">Nama Lengkap <span style="color: var(--danger)">*</span></label>
+            <input type="text" id="form-full-name" class="form-control" placeholder="Nama lengkap sesuai KTP" required autocomplete="name" />
+          </div>
+          <div class="form-group">
+            <label for="form-nik">NIK <span style="color: var(--danger)">*</span></label>
+            <input type="text" id="form-nik" class="form-control" placeholder="16 digit NIK KTP" maxlength="16" pattern="\d{16}" required />
+            <span class="hint">16 digit angka, unik per anggota</span>
+          </div>
+          <div class="form-group">
+            <label for="form-member-no">Nomor Anggota</label>
+            <input type="text" id="form-member-no" class="form-control" placeholder="Auto-generate jika kosong" />
+            <span class="hint">Contoh: KSP-2026-0010</span>
+          </div>
+          <div class="form-group">
+            <label for="form-birth-place">Tempat Lahir</label>
+            <input type="text" id="form-birth-place" class="form-control" placeholder="Kota tempat lahir" />
+          </div>
+          <div class="form-group">
+            <label for="form-birth-date">Tanggal Lahir</label>
+            <input type="date" id="form-birth-date" class="form-control" />
+          </div>
+          <div class="form-group">
+            <label for="form-gender">Jenis Kelamin</label>
+            <select id="form-gender" class="form-control">
+              <option value="">-- Pilih --</option>
+              <option value="L">Laki-laki</option>
+              <option value="P">Perempuan</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="form-phone">Nomor HP <span style="color: var(--danger)">*</span></label>
+            <input type="tel" id="form-phone" class="form-control" placeholder="08xxxxxxxxxx" required />
+          </div>
+          <div class="form-group">
+            <label for="form-email">Email</label>
+            <input type="email" id="form-email" class="form-control" placeholder="email@domain.com" />
+          </div>
+          <div class="form-group span-2">
+            <label for="form-address">Alamat Lengkap</label>
+            <textarea id="form-address" class="form-control" placeholder="Alamat tempat tinggal saat ini" rows="2" style="resize: vertical;"></textarea>
+          </div>
+        </div>
+
+        <!-- Data Organisasi -->
+        <div style="font-size: 0.8rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin: 1.25rem 0 0.75rem;">🏢 Data Organisasi</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="form-unit">Unit / Divisi</label>
+            <select id="form-unit" class="form-control">
+              <option value="">-- Pilih Unit --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="form-jabatan">Jabatan</label>
+            <select id="form-jabatan" class="form-control">
+              <option value="">-- Pilih Jabatan --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="form-join-date">Tanggal Bergabung</label>
+            <input type="date" id="form-join-date" class="form-control" />
+          </div>
+          <div class="form-group">
+            <label for="form-status-select">Status Keanggotaan</label>
+            <select id="form-status-select" class="form-control">
+              <option value="CALON">Calon Anggota</option>
+              <option value="AKTIF">Aktif</option>
+              <option value="NONAKTIF">Nonaktif</option>
+              <option value="KELUAR">Keluar</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Kontak Darurat -->
+        <div style="font-size: 0.8rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin: 1.25rem 0 0.75rem;">🆘 Kontak Darurat</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="form-ec-name">Nama Kontak Darurat</label>
+            <input type="text" id="form-ec-name" class="form-control" placeholder="Nama lengkap" />
+          </div>
+          <div class="form-group">
+            <label for="form-ec-relation">Hubungan</label>
+            <input type="text" id="form-ec-relation" class="form-control" placeholder="Suami/Istri/Orang Tua" />
+          </div>
+          <div class="form-group">
+            <label for="form-ec-phone">Nomor HP Kontak</label>
+            <input type="tel" id="form-ec-phone" class="form-control" placeholder="08xxxxxxxxxx" />
+          </div>
+          <div class="form-group">
+            <label for="form-notes">Catatan</label>
+            <input type="text" id="form-notes" class="form-control" placeholder="Keterangan tambahan" />
+          </div>
+        </div>
+
+        <div id="form-error" style="display: none; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: var(--danger); padding: 0.75rem 1rem; border-radius: 10px; font-size: 0.85rem; margin-top: 1rem;"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="Members.closeFormModal()">Batal</button>
+        <button type="submit" id="btn-form-submit" class="btn btn-primary">
+          <span id="submit-icon">💾</span>
+          <span id="submit-text">Simpan Anggota</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: DETAIL ANGGOTA
+================================================================ -->
+<div id="modal-member-detail" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-detail-title">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+        <span id="modal-detail-title">Detail Anggota</span>
+      </div>
+      <button onclick="Members.closeDetailModal()" class="btn btn-secondary btn-icon" style="width: 32px; height: 32px;">✕</button>
+    </div>
+    <div class="modal-body" id="detail-content">
+      <div style="text-align: center; padding: 2rem; color: var(--text-muted)"><span class="spinner"></span> Memuat...</div>
+    </div>
+    <div class="modal-footer" id="detail-footer">
+      <button class="btn btn-secondary" onclick="Members.closeDetailModal()">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     MODAL: CONFIRM STATUS CHANGE
+================================================================ -->
+<div id="modal-confirm" class="modal-overlay confirm-dialog" role="dialog" aria-modal="true">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="confirm-title">⚠️ Konfirmasi</div>
+      <button onclick="Members.closeConfirmModal()" class="btn btn-secondary btn-icon" style="width: 32px; height: 32px;">✕</button>
+    </div>
+    <div class="modal-body">
+      <p id="confirm-message" style="color: var(--text-primary); font-size: 0.9rem; line-height: 1.6;"></p>
+      <div id="confirm-notes-wrap" style="margin-top: 1rem; display: none;">
+        <label style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Catatan (Opsional)</label>
+        <textarea id="confirm-notes" class="form-control" rows="2" placeholder="Alasan perubahan status..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="Members.closeConfirmModal()">Batal</button>
+      <button id="confirm-action-btn" class="btn btn-primary" onclick="Members.executeConfirm()">Ya, Lanjutkan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     JAVASCRIPT MODULE
+================================================================ -->
+<script>
+(function() {
+  'use strict';
+
+  const CAN_UPDATE = {{ 'true' if 'member.update' in user_perms else 'false' }};
+
+  // -----------------------------------------------------------------------
+  // STATE
+  // -----------------------------------------------------------------------
+  const state = {
+    currentPage: 1,
+    totalPages: 1,
+    total: 0,
+    members: [],
+    loading: false,
+    editMemberId: null,
+    confirmAction: null,
+    confirmMemberId: null,
+    searchTimer: null,
+    masterUnits: [],
+    masterJabatan: [],
+  };
+
+  // -----------------------------------------------------------------------
+  // UTILS
+  // -----------------------------------------------------------------------
+  function token() {
+    const c = document.cookie.split('; ').find(r => r.startsWith('access_token='));
+    if (!c) return null;
+    const t = c.split('=')[1];
+    return t.startsWith('Bearer%20') ? decodeURIComponent(t).split(' ')[1] : t;
+  }
+
+  function authHeaders() {
+    const t = token();
+    return t ? { 'Authorization': `Bearer ${t}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+  }
+
+  async function apiFetch(url, opts = {}) {
+    const resp = await fetch(url, { ...opts, headers: { ...authHeaders(), ...(opts.headers || {}) } });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) throw new Error(data.detail || data.message || `Error ${resp.status}`);
+    return data;
+  }
+
+  function getStatusBadge(s) {
+    const map = { AKTIF: 'aktif', CALON: 'calon', NONAKTIF: 'nonaktif', KELUAR: 'keluar' };
+    const label = { AKTIF: 'Aktif', CALON: 'Calon', NONAKTIF: 'Nonaktif', KELUAR: 'Keluar' };
+    const cls = map[s] || 'nonaktif';
+    return `<span class="badge badge-${cls}">${label[s] || s}</span>`;
+  }
+
+  function getAvatarColor(name) {
+    const colors = ['#6366f1','#8b5cf6','#06b6d4','#10b981','#f59e0b','#ef4444','#ec4899','#14b8a6'];
+    let h = 0; for (const c of (name||'?')) h = (h * 31 + c.charCodeAt(0)) % colors.length;
+    return colors[h];
+  }
+
+  function fmtDate(d) {
+    if (!d) return '-';
+    return new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  function showToast(msg, type = 'info') {
+    if (window.App?.showToast) App.showToast(msg, type);
+    else console.log(`[${type.toUpperCase()}] ${msg}`);
+  }
+
+  // -----------------------------------------------------------------------
+  // LOAD MASTER DATA
+  // -----------------------------------------------------------------------
+  async function loadMasterData() {
+    try {
+      const [units, jabatan] = await Promise.all([
+        apiFetch('/api/v1/members/master/unit-divisi'),
+        apiFetch('/api/v1/members/master/jabatan'),
+      ]);
+      state.masterUnits = units.data || [];
+      state.masterJabatan = jabatan.data || [];
+      populateMasterSelects();
+    } catch(e) { console.warn('Master data:', e); }
+  }
+
+  function populateMasterSelects() {
+    const unitSel = document.getElementById('form-unit');
+    const jabSel  = document.getElementById('form-jabatan');
+    state.masterUnits.forEach(u => {
+      const o = new Option(u.name, u.name); unitSel.appendChild(o);
+    });
+    state.masterJabatan.forEach(j => {
+      const o = new Option(j.name, j.name); jabSel.appendChild(o);
+    });
+  }
+
+  // -----------------------------------------------------------------------
+  // LOAD MEMBERS
+  // -----------------------------------------------------------------------
+  async function loadMembers(page = 1) {
+    if (state.loading) return;
+    state.currentPage = page;
+    state.loading = true;
+
+    const search  = document.getElementById('search-input').value.trim();
+    const status  = document.getElementById('filter-status').value;
+    const gender  = document.getElementById('filter-gender').value;
+    const sortRaw = document.getElementById('filter-sort').value;
+    const [sortBy, sortOrder] = sortRaw.split('_');
+
+    const tbody = document.getElementById('members-tbody');
+    tbody.innerHTML = '<tr class="loading-row"><td colspan="8"><span class="spinner"></span> Memuat...</td></tr>';
+
+    try {
+      const params = new URLSearchParams({
+        page, per_page: 15,
+        sort_by: sortBy === 'full' ? 'full_name' : sortBy,
+        sort_order: sortOrder || 'desc',
+      });
+      if (search) params.set('search', search);
+      if (status) params.set('status', status);
+      if (gender) params.set('gender', gender);
+
+      const data = await apiFetch(`/api/v1/members/?${params}`);
+      state.members = data.items || [];
+      state.totalPages = data.total_pages;
+      state.total = data.total;
+      renderTable(data);
+      renderPagination(data);
+    } catch(e) {
+      tbody.innerHTML = `<tr class="loading-row"><td colspan="8">❌ ${e.message}</td></tr>`;
+    } finally {
+      state.loading = false;
+    }
+  }
+
+  function renderTable(data) {
+    const tbody = document.getElementById('members-tbody');
+    if (!data.items || data.items.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="8">
+        <div class="empty-state">
+          <div class="empty-icon">👤</div>
+          <strong style="display: block; margin-bottom: 0.5rem;">Tidak ada data anggota</strong>
+          <p>Coba ubah filter pencarian atau daftarkan anggota baru.</p>
+        </div></td></tr>`;
+      return;
+    }
+
+    const offset = (data.page - 1) * data.per_page;
+    tbody.innerHTML = data.items.map((m, i) => {
+      const initials = m.full_name.split(' ').map(x => x[0]).join('').substring(0,2).toUpperCase();
+      const avColor  = getAvatarColor(m.full_name);
+      const unitJab  = [m.unit_divisi, m.jabatan].filter(Boolean).join(' / ') || '-';
+      return `<tr>
+        <td style="color: var(--text-muted); font-size: 0.8rem;">${offset + i + 1}</td>
+        <td>
+          <div class="member-info">
+            <div class="member-avatar" style="background: ${avColor};">${initials}</div>
+            <div>
+              <div class="member-name">${m.full_name}</div>
+              <div class="member-no">${m.member_no}</div>
+            </div>
+          </div>
+        </td>
+        <td style="font-family: monospace; font-size: 0.82rem; color: var(--text-muted);">${m.nik}</td>
+        <td style="font-size: 0.82rem;">${unitJab}</td>
+        <td style="font-size: 0.82rem;">${m.phone_number || '-'}</td>
+        <td style="font-size: 0.82rem; color: var(--text-muted);">${fmtDate(m.join_date)}</td>
+        <td>${getStatusBadge(m.status)}</td>
+        <td>
+          <div style="display: flex; gap: 0.4rem; justify-content: center; flex-wrap: wrap;">
+            <button class="btn btn-secondary" style="padding: 0.3rem 0.55rem; font-size: 0.75rem;" onclick="Members.viewDetail(${m.id})" title="Detail">
+              <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+            </button>
+            ${CAN_UPDATE ? `
+            <button class="btn btn-secondary" style="padding: 0.3rem 0.55rem; font-size: 0.75rem;" onclick="Members.openEditModal(${m.id})" title="Edit">
+              <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+            </button>
+            ${m.status === 'CALON' || m.status === 'NONAKTIF' ? `
+            <button class="btn btn-secondary" style="padding: 0.3rem 0.55rem; font-size: 0.75rem; color: var(--success);" onclick="Members.confirmActivate(${m.id}, '${escAttr(m.full_name)}')" title="Aktifkan">✓</button>` : ''}
+            ${m.status === 'AKTIF' ? `
+            <button class="btn btn-secondary" style="padding: 0.3rem 0.55rem; font-size: 0.75rem; color: var(--danger);" onclick="Members.confirmDeactivate(${m.id}, '${escAttr(m.full_name)}')" title="Nonaktifkan">⊘</button>` : ''}
+            ` : ''}
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  function renderPagination(data) {
+    const bar = document.getElementById('pagination-bar');
+    if (data.total_pages <= 1) { bar.innerHTML = ''; return; }
+
+    const showing = Math.min(data.page * data.per_page, data.total);
+    const from = (data.page - 1) * data.per_page + 1;
+    
+    let html = `<span class="page-info">${from}-${showing} dari ${data.total}</span>`;
+    html += `<button onclick="Members.loadMembers(1)" ${!data.has_prev ? 'disabled' : ''}>«</button>`;
+    html += `<button onclick="Members.loadMembers(${data.page - 1})" ${!data.has_prev ? 'disabled' : ''}>‹</button>`;
+
+    // Page number buttons (max 5 around current)
+    const start = Math.max(1, data.page - 2);
+    const end = Math.min(data.total_pages, data.page + 2);
+    for (let p = start; p <= end; p++) {
+      html += `<button onclick="Members.loadMembers(${p})" class="${p === data.page ? 'active' : ''}">${p}</button>`;
+    }
+    
+    html += `<button onclick="Members.loadMembers(${data.page + 1})" ${!data.has_next ? 'disabled' : ''}>›</button>`;
+    html += `<button onclick="Members.loadMembers(${data.total_pages})" ${!data.has_next ? 'disabled' : ''}>»</button>`;
+    bar.innerHTML = html;
+  }
+
+  // -----------------------------------------------------------------------
+  // DETAIL MODAL
+  // -----------------------------------------------------------------------
+  async function viewDetail(memberId) {
+    document.getElementById('modal-member-detail').classList.add('open');
+    document.getElementById('detail-content').innerHTML = '<div style="text-align:center;padding:2rem;"><span class="spinner"></span></div>';
+
+    try {
+      const m = await apiFetch(`/api/v1/members/${memberId}`);
+      document.getElementById('modal-detail-title').textContent = `Detail – ${m.full_name}`;
+      
+      const canEdit = {% if 'member.update' in user_perms %} true {% else %} false {% endif %};
+      
+      document.getElementById('detail-content').innerHTML = `
+        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; padding-bottom: 1.25rem; border-bottom: 1px solid var(--border-subtle);">
+          <div class="member-avatar" style="width: 56px; height: 56px; font-size: 1.2rem; font-weight: 800; background: ${getAvatarColor(m.full_name)}; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; flex-shrink: 0;">
+            ${m.full_name.split(' ').map(x=>x[0]).join('').substring(0,2).toUpperCase()}
+          </div>
+          <div>
+            <div style="font-size: 1.15rem; font-weight: 800;">${m.full_name}</div>
+            <div style="font-family: monospace; color: var(--text-muted); font-size: 0.82rem; margin: 0.15rem 0;">${m.member_no}</div>
+            ${getStatusBadge(m.status)}
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <div class="detail-section-title">Identitas Anggota</div>
+          <div class="detail-grid">
+            <div class="detail-item"><div class="d-label">NIK</div><div class="d-value" style="font-family: monospace;">${m.nik}</div></div>
+            <div class="detail-item"><div class="d-label">Jenis Kelamin</div><div class="d-value">${m.gender === 'L' ? '♂ Laki-laki' : m.gender === 'P' ? '♀ Perempuan' : '-'}</div></div>
+            <div class="detail-item"><div class="d-label">Tempat Lahir</div><div class="d-value">${m.birth_place || '-'}</div></div>
+            <div class="detail-item"><div class="d-label">Tanggal Lahir</div><div class="d-value">${fmtDate(m.birth_date)}</div></div>
+            <div class="detail-item" style="grid-column: 1/-1;"><div class="d-label">Alamat</div><div class="d-value">${m.address || '-'}</div></div>
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <div class="detail-section-title">Kontak</div>
+          <div class="detail-grid">
+            <div class="detail-item"><div class="d-label">Nomor HP</div><div class="d-value">${m.phone_number || '-'}</div></div>
+            <div class="detail-item"><div class="d-label">Email</div><div class="d-value">${m.email || '-'}</div></div>
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <div class="detail-section-title">Data Organisasi</div>
+          <div class="detail-grid">
+            <div class="detail-item"><div class="d-label">Unit/Divisi</div><div class="d-value">${m.unit_divisi || '-'}</div></div>
+            <div class="detail-item"><div class="d-label">Jabatan</div><div class="d-value">${m.jabatan || '-'}</div></div>
+            <div class="detail-item"><div class="d-label">Tanggal Bergabung</div><div class="d-value">${fmtDate(m.join_date)}</div></div>
+            ${m.resigned_date ? `<div class="detail-item"><div class="d-label">Tanggal Keluar</div><div class="d-value">${fmtDate(m.resigned_date)}</div></div>` : ''}
+          </div>
+        </div>
+
+        ${m.emergency_contact_name ? `<div class="detail-section">
+          <div class="detail-section-title">Kontak Darurat</div>
+          <div class="detail-grid">
+            <div class="detail-item"><div class="d-label">Nama</div><div class="d-value">${m.emergency_contact_name}</div></div>
+            <div class="detail-item"><div class="d-label">Hubungan</div><div class="d-value">${m.emergency_contact_relation || '-'}</div></div>
+            <div class="detail-item"><div class="d-label">Nomor HP</div><div class="d-value">${m.emergency_contact_phone || '-'}</div></div>
+          </div>
+        </div>` : ''}
+
+        ${m.notes ? `<div class="detail-section">
+          <div class="detail-section-title">Catatan</div>
+          <p style="font-size: 0.875rem; color: var(--text-primary); line-height: 1.6; margin: 0;">${m.notes}</p>
+        </div>` : ''}
+
+        <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--border-subtle); display: flex; gap: 1.5rem;">
+          <span>Dibuat: ${fmtDate(m.created_at)}</span>
+          <span>Diperbarui: ${fmtDate(m.updated_at)}</span>
+        </div>
+      `;
+      
+      // Footer buttons
+      const footer = document.getElementById('detail-footer');
+      let footerHtml = `<button class="btn btn-secondary" onclick="Members.closeDetailModal()">Tutup</button>`;
+      if (canEdit) {
+        if (m.status === 'CALON' || m.status === 'NONAKTIF') {
+          footerHtml += `<button class="btn btn-primary" style="background: var(--success);" onclick="Members.closeDetailModal(); Members.confirmActivate(${m.id}, '${escAttr(m.full_name)}')">✓ Aktifkan</button>`;
+        }
+        if (m.status === 'AKTIF') {
+          footerHtml += `<button class="btn btn-secondary" style="color: var(--danger);" onclick="Members.closeDetailModal(); Members.confirmDeactivate(${m.id}, '${escAttr(m.full_name)}')">⊘ Nonaktifkan</button>`;
+        }
+        footerHtml += `<button class="btn btn-primary" onclick="Members.closeDetailModal(); Members.openEditModal(${m.id})">✎ Edit</button>`;
+      }
+      footer.innerHTML = footerHtml;
+    } catch(e) {
+      document.getElementById('detail-content').innerHTML = `<div class="empty-state"><p>❌ ${e.message}</p></div>`;
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // CREATE / EDIT MODAL
+  // -----------------------------------------------------------------------
+  function openCreateModal() {
+    state.editMemberId = null;
+    document.getElementById('modal-form-title').textContent = 'Daftarkan Anggota Baru';
+    document.getElementById('submit-text').textContent = 'Simpan Anggota';
+    document.getElementById('member-form').reset();
+    document.getElementById('form-member-id').value = '';
+    document.getElementById('form-error').style.display = 'none';
+    document.getElementById('form-join-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('modal-member-form').classList.add('open');
+  }
+
+  async function openEditModal(memberId) {
+    state.editMemberId = memberId;
+    document.getElementById('modal-form-title').textContent = 'Edit Data Anggota';
+    document.getElementById('submit-text').textContent = 'Simpan Perubahan';
+    document.getElementById('form-error').style.display = 'none';
+    document.getElementById('modal-member-form').classList.add('open');
+
+    try {
+      const m = await apiFetch(`/api/v1/members/${memberId}`);
+      document.getElementById('form-member-id').value = m.id;
+      document.getElementById('form-full-name').value = m.full_name || '';
+      document.getElementById('form-nik').value = m.nik || '';
+      document.getElementById('form-member-no').value = m.member_no || '';
+      document.getElementById('form-birth-place').value = m.birth_place || '';
+      document.getElementById('form-birth-date').value = m.birth_date || '';
+      document.getElementById('form-gender').value = m.gender || '';
+      document.getElementById('form-phone').value = m.phone_number || '';
+      document.getElementById('form-email').value = m.email || '';
+      document.getElementById('form-address').value = m.address || '';
+      document.getElementById('form-unit').value = m.unit_divisi || '';
+      document.getElementById('form-jabatan').value = m.jabatan || '';
+      document.getElementById('form-join-date').value = m.join_date || '';
+      document.getElementById('form-status-select').value = m.status || 'CALON';
+      document.getElementById('form-ec-name').value = m.emergency_contact_name || '';
+      document.getElementById('form-ec-relation').value = m.emergency_contact_relation || '';
+      document.getElementById('form-ec-phone').value = m.emergency_contact_phone || '';
+      document.getElementById('form-notes').value = m.notes || '';
+    } catch(e) {
+      document.getElementById('form-error').textContent = e.message;
+      document.getElementById('form-error').style.display = 'block';
+    }
+  }
+
+  function closeFormModal() {
+    document.getElementById('modal-member-form').classList.remove('open');
+    state.editMemberId = null;
+  }
+
+  function closeDetailModal() {
+    document.getElementById('modal-member-detail').classList.remove('open');
+  }
+
+  // -----------------------------------------------------------------------
+  // FORM SUBMIT (CREATE OR EDIT)
+  // -----------------------------------------------------------------------
+  async function submitForm(e) {
+    e.preventDefault();
+    const errDiv = document.getElementById('form-error');
+    errDiv.style.display = 'none';
+
+    const isEdit = !!state.editMemberId;
+    const payload = {
+      full_name: document.getElementById('form-full-name').value.trim(),
+      nik: document.getElementById('form-nik').value.trim(),
+      birth_place: document.getElementById('form-birth-place').value.trim() || null,
+      birth_date: document.getElementById('form-birth-date').value || null,
+      gender: document.getElementById('form-gender').value || null,
+      phone_number: document.getElementById('form-phone').value.trim(),
+      email: document.getElementById('form-email').value.trim() || null,
+      address: document.getElementById('form-address').value.trim() || null,
+      unit_divisi: document.getElementById('form-unit').value || null,
+      jabatan: document.getElementById('form-jabatan').value || null,
+      emergency_contact_name: document.getElementById('form-ec-name').value.trim() || null,
+      emergency_contact_relation: document.getElementById('form-ec-relation').value.trim() || null,
+      emergency_contact_phone: document.getElementById('form-ec-phone').value.trim() || null,
+      notes: document.getElementById('form-notes').value.trim() || null,
+    };
+
+    if (!isEdit) {
+      payload.member_no = document.getElementById('form-member-no').value.trim() || null;
+      payload.join_date = document.getElementById('form-join-date').value || null;
+      payload.status = document.getElementById('form-status-select').value;
+    }
+
+    const btn = document.getElementById('btn-form-submit');
+    btn.disabled = true;
+    document.getElementById('submit-icon').textContent = '⏳';
+    document.getElementById('submit-text').textContent = 'Menyimpan...';
+
+    try {
+      if (isEdit) {
+        await apiFetch(`/api/v1/members/${state.editMemberId}`, { method: 'PUT', body: JSON.stringify(payload) });
+        showToast('Data anggota berhasil diperbarui.', 'success');
+      } else {
+        await apiFetch('/api/v1/members/', { method: 'POST', body: JSON.stringify(payload) });
+        showToast('Anggota baru berhasil didaftarkan.', 'success');
+      }
+      closeFormModal();
+      loadMembers(state.currentPage);
+    } catch(e) {
+      errDiv.textContent = e.message;
+      errDiv.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      document.getElementById('submit-icon').textContent = '💾';
+      document.getElementById('submit-text').textContent = isEdit ? 'Simpan Perubahan' : 'Simpan Anggota';
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // CONFIRM MODAL (ACTIVATE / DEACTIVATE)
+  // -----------------------------------------------------------------------
+  // Prompt #14: escape untuk nama (mencegah rusaknya onclick & XSS)
+  function escHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function escAttr(s) {
+    return escHtml(String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'"));
+  }
+  function confirmActivate(memberId, name) {
+    state.confirmAction = 'activate';
+    state.confirmMemberId = memberId;
+    document.getElementById('confirm-title').innerHTML = '✅ Aktivasi Anggota';
+    document.getElementById('confirm-message').innerHTML = `Apakah Anda yakin ingin mengaktifkan keanggotaan <strong>${escHtml(name)}</strong>?<br>Status akan berubah menjadi <strong>AKTIF</strong>.`;
+    document.getElementById('confirm-notes-wrap').style.display = 'block';
+    document.getElementById('confirm-notes').value = '';
+    document.getElementById('confirm-action-btn').className = 'btn btn-primary';
+    document.getElementById('confirm-action-btn').textContent = '✓ Aktifkan';
+    document.getElementById('modal-confirm').classList.add('open');
+  }
+
+  function confirmDeactivate(memberId, name) {
+    state.confirmAction = 'deactivate';
+    state.confirmMemberId = memberId;
+    document.getElementById('confirm-title').innerHTML = '⊘ Nonaktifkan Anggota';
+    document.getElementById('confirm-message').innerHTML = `Apakah Anda yakin ingin menonaktifkan keanggotaan <strong>${escHtml(name)}</strong>?<br>Status akan berubah menjadi <strong>NONAKTIF</strong>.`;
+    document.getElementById('confirm-notes-wrap').style.display = 'block';
+    document.getElementById('confirm-notes').value = '';
+    document.getElementById('confirm-action-btn').className = 'btn btn-primary';
+    document.getElementById('confirm-action-btn').style.background = 'var(--danger)';
+    document.getElementById('confirm-action-btn').textContent = '⊘ Nonaktifkan';
+    document.getElementById('modal-confirm').classList.add('open');
+  }
+
+  function closeConfirmModal() {
+    document.getElementById('modal-confirm').classList.remove('open');
+    state.confirmAction = null;
+    state.confirmMemberId = null;
+  }
+
+  async function executeConfirm() {
+    if (!state.confirmAction || !state.confirmMemberId) return;
+    const notes = document.getElementById('confirm-notes').value.trim() || null;
+    const btn = document.getElementById('confirm-action-btn');
+    btn.disabled = true;
+    btn.textContent = 'Memproses...';
+
+    try {
+      const endpoint = state.confirmAction === 'activate'
+        ? `/api/v1/members/${state.confirmMemberId}/activate${notes ? `?notes=${encodeURIComponent(notes)}` : ''}`
+        : `/api/v1/members/${state.confirmMemberId}/deactivate${notes ? `?notes=${encodeURIComponent(notes)}` : ''}`;
+      await apiFetch(endpoint, { method: 'PATCH' });
+      showToast(
+        state.confirmAction === 'activate' ? 'Anggota berhasil diaktifkan.' : 'Anggota berhasil dinonaktifkan.',
+        'success'
+      );
+      closeConfirmModal();
+      loadMembers(state.currentPage);
+    } catch(e) {
+      showToast(`Error: ${e.message}`, 'error');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // SEARCH DEBOUNCE
+  // -----------------------------------------------------------------------
+  function debounceSearch() {
+    clearTimeout(state.searchTimer);
+    state.searchTimer = setTimeout(() => loadMembers(1), 450);
+  }
+
+  // -----------------------------------------------------------------------
+  // CLOSE ON BACKDROP CLICK
+  // -----------------------------------------------------------------------
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) overlay.classList.remove('open');
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // EXPOSE PUBLIC API
+  // -----------------------------------------------------------------------
+  window.Members = {
+    loadMembers,
+    viewDetail,
+    openCreateModal,
+    openEditModal,
+    closeFormModal,
+    closeDetailModal,
+    confirmActivate,
+    confirmDeactivate,
+    closeConfirmModal,
+    executeConfirm,
+    debounceSearch,
+    submitForm,
+  };
+
+  // -----------------------------------------------------------------------
+  // INIT
+  // -----------------------------------------------------------------------
+  loadMasterData().then(() => loadMembers(1));
+
+})();
+</script>
+{% endblock %}
